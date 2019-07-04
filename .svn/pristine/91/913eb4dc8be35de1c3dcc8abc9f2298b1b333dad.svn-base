@@ -1,0 +1,168 @@
+/*
+ * Copyright (c) 2014, 2016, XIANDIAN and/or its affiliates. All rights reserved.
+ * XIANDIAN PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ *
+ */
+package com.xiandian.cloud.storage.web;
+
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.openstack4j.api.OSClient.OSClientV3;
+import org.openstack4j.model.common.Identifier;
+import org.openstack4j.model.compute.Server;
+import org.openstack4j.openstack.OSFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.context.ContextLoader;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.servlet.ModelAndView;
+
+import com.xiandian.cloud.storage.bean.MessageBean;
+import com.xiandian.cloud.storage.cons.Constants;
+import com.xiandian.cloud.storage.domain.User;
+import com.xiandian.cloud.storage.service.SwiftStorageService;
+import com.xiandian.cloud.storage.service.UserService;
+import com.xiandian.cloud.storage.service.sup.Storage;
+import com.xiandian.cloud.storage.util.MD5;
+import com.xiandian.cloud.storage.util.UtilTools;
+
+/**
+ * 用户涉及到的所有控制action
+ * 
+ * @author 云计算应用与开发项目组
+ * @since  V1.4
+ * 
+ */
+@Controller
+public class UserController extends BaseController {
+
+	@Autowired
+	private UserService userService;
+	
+	private WebApplicationContext wac = ContextLoader.getCurrentWebApplicationContext();
+	private String beanName=UtilTools.getConfig().getProperty("storage");
+	private Storage storage = (Storage)wac.getBean(beanName) ;
+	
+	/**
+	 * 登陆
+	 * @param request
+	 * @param response
+	 * @param email
+	 * @param password
+	 */
+	@RequestMapping("/login")
+	@ResponseBody
+	public Object login(HttpServletRequest request, HttpServletResponse response,
+			String username, String password) {
+		
+		OSClientV3 os = OSFactory.builderV3()
+                .endpoint("http://172.24.21.10:5000/v3")
+                .credentials("admin", "000000", Identifier.byName("admin"))
+                .scopeToProject(Identifier.byId("78ff7b3430fd44128467ef7a764c9f03"))
+                .authenticate();
+		
+		List<? extends Server> serverList = os.compute().servers().list();
+		for(Server server : serverList){
+			System.out.println(server.getName());
+		}
+		
+		
+		User user = userService.getUserByname(username);
+		if (user == null) {
+			return new MessageBean(false,Constants.ERROR_1);
+		}
+		MD5 md5 = new MD5();
+		String inputstr = md5.getMD5ofStr(password);
+		if (!inputstr.equals(user.getPassword())) {
+			return new MessageBean(false,Constants.ERROR_2);
+		}
+		setSessionUser(request, user);
+		return new MessageBean(true,Constants.SUCCESS_1);
+	}
+	
+	/**
+	 * 退出
+	 */
+	@RequestMapping("/logout")
+	public ModelAndView logout(HttpServletRequest request,
+			HttpServletResponse response, String path) {
+		setSessionUser(request, null);
+		String url = "redirect:/index.html";
+		return new ModelAndView(url);
+	}
+	
+	/**
+	 * 注册
+	 * @param request
+	 * @param response
+	 * @param email
+	 * @param password
+	 */
+	@RequestMapping("/regeister")
+	@ResponseBody
+	public Object regeister(HttpServletRequest request, HttpServletResponse response,
+			String username,String realname,String email, String password) {
+		User user = userService.getUserByname(username);
+		if (user != null) {
+			return new MessageBean(false,Constants.ERROR_3);
+		}
+		user = userService.save(username, realname, email,password);
+		setSessionUser(request, user);
+		
+		//新建用户对应云平台的container，garbage
+		if(storage instanceof SwiftStorageService){
+			((SwiftStorageService)storage).createContainer(username);
+		}
+		return new MessageBean(true,Constants.SUCCESS_2);
+	}
+	
+	/**
+	 * 密码管理
+	 * @param request
+	 * @param response
+	 * @param email
+	 * @param password
+	 */
+	@RequestMapping("/updateuserinfo")
+	@ResponseBody
+	public Object updateuserinfo(HttpServletRequest request, HttpServletResponse response,
+			String oldpassword,String newpassword) {
+		User user = getSessionUser(request);
+		String password = user.getPassword();
+		MD5 md5 = new MD5();
+		String inputstr = md5.getMD5ofStr(oldpassword);
+		if (!password.equals(inputstr))
+		{
+			return new MessageBean(false,Constants.ERROR_7);
+		}
+		else
+		{
+			user.setPassword(md5.getMD5ofStr(newpassword));
+			userService.update(user);
+			return new MessageBean(true,Constants.SUCCESS_6);
+		}
+	}
+	
+	/**
+	 * 容量更新
+	 * @param request
+	 * @param response
+	 * @param email
+	 * @param password
+	 */
+	@RequestMapping("/addcapacity")
+	@ResponseBody
+	public Object addcapacity(HttpServletRequest request, HttpServletResponse response,
+			int capacity) {
+		User user = getSessionUser(request);
+		user.setCapacity(user.getCapacity() + capacity);
+		userService.update(user);
+		setSessionUser(request, user);
+		return new MessageBean(true,Constants.SUCCESS_6);
+	}
+}

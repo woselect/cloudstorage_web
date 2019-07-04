@@ -1,0 +1,752 @@
+/*
+ * Copyright (c) 2014, 2016, XIANDIAN and/or its affiliates. All rights reserved.
+ * XIANDIAN PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ *
+ */
+package com.xiandian.cloud.storage.service;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import org.springframework.stereotype.Service;
+
+import com.xiandian.cloud.storage.sh.bean.FileBean;
+import com.xiandian.cloud.storage.cons.Constants;
+import com.xiandian.cloud.storage.domain.User;
+import com.xiandian.cloud.storage.service.sup.Storage;
+import com.xiandian.cloud.storage.sh.HDFS;
+import com.xiandian.cloud.storage.util.ComparatorFile;
+@Service
+public class HadoopStorageService extends Storage  {
+	
+	public HDFS hdfs = HDFS.getInstance();
+//	@Autowired
+//	private ResourceFileDao resourceFileDao;
+//	@Autowired
+//	private UserDao userDao;
+	
+	/**
+	 * 取得路径下的所有文件
+	 */
+	public List getAllStoredList(String username, String path,String upath) {
+		List<FileBean> list = null;
+		try {
+			if (path.equals(""))
+			{
+				path = Constants.RESOURCE_FILE+"/"+username;
+			}
+			list = hdfs.queryAll(path);
+		} catch (Exception e) {
+		}
+		ComparatorFile comparator = new ComparatorFile();
+		if (list != null && !list.isEmpty()) {
+			synchronized (list) {
+				Collections.sort(list, comparator);
+			}
+
+		}
+
+		return list;
+	}
+
+	/**
+	 * 取得路径下的所有文件夹
+	 */
+	 public List getAllStoredDirectoryList(String username, String path,String
+	 upath) {
+		 List list = new ArrayList();
+			 try {	
+		 if (path != null && path.length() > 1) {
+			
+		list = hdfs.queryAll(path);
+		
+		 } else {
+			path = Constants.RESOURCE_FILE+"/"+username;
+			list =haschild(path);		
+		 }
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+			 
+			 
+	 return list;
+	 }
+	 private List<FileBean> haschild(String path) {
+		 List<FileBean> list = new ArrayList<FileBean>();
+
+		 try {
+			List<FileBean> lt=hdfs.queryAll(path);
+			for(int i=0;i<lt.size();i++){
+				if(hdfs.queryAll(lt.get(i).getPath()).size()>0){
+					FileBean fb = new FileBean();
+					fb.setName(lt.get(i).getName());
+					fb.setIsdirectory(true);
+					fb.setPath(lt.get(i).getPath());
+					fb.setHaschild(true);
+					list.add(fb);
+				}else{
+					list.add(lt.get(i));
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		 return list;
+	 }
+
+	/**
+	 * 搜索根路径下的所有与key匹配的文件及文件夹
+	 * 
+	 * @param username
+	 * @param upath
+	 * @param key
+	 * @return
+	 */
+	 public List searchStoredList(String username,String upath,String key) {
+	 List<FileBean> list = new ArrayList<FileBean>();
+	 try {
+		 hdfs.queryByKey(Constants.RESOURCE_FILE+"/"+username,key,list);
+	} catch (Exception e) {
+		e.printStackTrace();
+	}
+	 return list;
+	 }
+
+	// private void downfile(String upath,String temppath,StoredObject c)
+	// {
+	// try
+	// {
+	// String downLoadPath = upath+File.separator+temppath;
+	// File downLoadFile = new File(downLoadPath);
+	// downLoadFile.createNewFile();
+	// BufferedOutputStream buffer=new BufferedOutputStream(new
+	// FileOutputStream(downLoadFile));
+	// buffer.write(c.downloadObject());
+	// buffer.flush();
+	// buffer.close();
+	// }
+	// catch(Exception e)
+	// {}
+	// }
+	/**
+	 * 取得垃圾箱路径下的所有文件
+	 */
+	 public List getAllGarbageList(String username) {
+	// Account account = UtilTools.getAccount();
+	// Container container =
+	// account.getContainer(Constants.GARBAGE_PREFIX+username);
+	// Collection<DirectoryOrObject> objects = container.listDirectory();
+	//
+	 List list = new ArrayList();
+	// for (DirectoryOrObject c : objects) {
+	// FileBean fb = new FileBean();
+	// fb.setName(c.getBareName());
+	// fb.setIsdirectory(c.isDirectory());
+	// if (c.isDirectory()) {
+	// fb.setPath(c.getAsDirectory().getName());
+	// list.add(fb);
+	// } else {
+	// String tp = c.getName();
+	// String ttp = UtilTools.replaceStr(tp);
+	// if (!ttp.endsWith("/"))
+	// {
+	// fb.setPath(tp);
+	// fb.setLength(c.getAsObject().getContentLength());
+	// fb.setLastmodified(c.getAsObject().getLastModified());
+	// list.add(fb);
+	// }
+	// }
+	// }
+	 return list;
+	 }
+
+	/**
+	 * 取得路径下对应类型的所有文件
+	 * 
+	 * @param email
+	 * @return
+	 */
+	 public List getCategoryStoredList(String username, int type,String upath)
+	 {
+		 List list = new ArrayList();
+		 try {
+			 
+			hdfs.queryByCatetory(Constants.RESOURCE_FILE+"/"+username,type,list);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		 return list;
+	 }
+
+	/**
+	 * 创建文件夹
+	 * 
+	 * @param name
+	 * @return
+	 */
+	public boolean createDir(String username,String path, String name) {
+		if (path.equals(""))
+		{
+			path = Constants.RESOURCE_FILE+"/"+username;
+		}
+		String dir = path +"/"+ name;
+		try {
+			boolean isexist = hdfs.isexist(dir);
+			if (isexist) {
+				return false;
+			}
+			hdfs.mkdir(dir);
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
+	/**
+	 * 创建文件
+	 * 
+	 * @param name
+	 * @return
+	 */
+	public boolean createFile(String username,String path, String name, String filepath) {
+		if (path.equals(""))
+		{
+			path = Constants.RESOURCE_FILE+"/"+username;
+		}
+		InputStream in;
+		String fp = path+"/" + name;
+		try {
+			in = new FileInputStream(new File(filepath));
+			hdfs.upload(in, fp);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+
+	}
+
+	/**
+	 * 删除文件 移动到回收站，由于没有实现还原，所以简化实现删除
+	 * 
+	 */
+	public void deletefiles(User user,List<Map<String, Object>> list) {
+		for (Map<String, Object> map : list) {
+			String path = (String) map.get("path");
+			try {
+				hdfs.delete(path);
+				
+//				ResourceFile rf = resourceFileDao.getResourceFile(userid,path);
+//				if (rf != null)
+//				resourceFileDao.delete(rf);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	// private void deletefile(Container container, Container garbagecontainer,
+	// String path,String newpath)
+	// {
+	// // String temppath = UtilTools.replaceStr(path);
+	// StoredObject object = container.getObject(path);
+	// StoredObject garbageobject = garbagecontainer.getObject(newpath);
+	// object.copyObject(garbagecontainer, garbageobject);
+	// Map<String, Object> metadata = new HashMap<String, Object>();
+	// metadata.put("isDir", "false");
+	// try {
+	// metadata.put("path", URLEncoder.encode(object.getName(),"utf-8"));
+	// } catch (UnsupportedEncodingException e) {
+	// // TODO Auto-generated catch block
+	// e.printStackTrace();
+	// }
+	// garbageobject.setMetadata(metadata);
+	// object.delete();
+	// }
+	//
+	// private void deletedirfile(Container container, Container
+	// garbagecontainer,String path,String name,String epath,int type)
+	// {
+	// Directory directory = new Directory(epath, '/');
+	// Collection<DirectoryOrObject> objects =
+	// container.listDirectory(directory);
+	// for (DirectoryOrObject c : objects) {
+	// if (c.isDirectory()) {
+	// String cpath = c.getAsDirectory().getName();
+	// // String[] strs = cpath.split(path);
+	// String tpath = cpath.substring(path.length());
+	// String tnewpath = name + "/" + tpath;//strs[1];
+	// deletedfile(container,garbagecontainer,cpath, tnewpath);
+	// deletedirfile(container,garbagecontainer,path,name,cpath,2);
+	// } else {
+	//
+	// String temppath = c.getName();
+	// if (temppath.endsWith("/"))
+	// {
+	// continue;
+	// }
+	// // String[] strs = temppath.split(path);
+	// String tpath = temppath.substring(path.length());
+	// String tnewpath = name + "/" + tpath;//strs[1];
+	// deletefile(container,garbagecontainer,temppath, tnewpath);
+	// }
+	// }
+	// }
+	//
+	// private void deletedfile(Container container, Container garbagecontainer,
+	// String path,String newpath)
+	// {
+	// StoredObject object = container.getObject(path);
+	// if (object.exists())
+	// {
+	// StoredObject garbageobject = garbagecontainer.getObject(newpath);
+	// // object.copyObject(garbagecontainer, garbageobject);
+	// garbageobject.uploadObject(new byte[] {});
+	// Map<String, Object> metadata = new HashMap<String, Object>();
+	// metadata.put("isDir", "true");
+	// try {
+	// metadata.put("path", URLEncoder.encode(object.getName(),"utf-8"));
+	// } catch (UnsupportedEncodingException e) {
+	// // TODO Auto-generated catch block
+	// e.printStackTrace();
+	// }
+	// garbageobject.setMetadata(metadata);
+	// object.delete();
+	// }
+	// }
+
+	/**
+	 * 重命名文件
+	 * 
+	 * @param email
+	 * @param path
+	 */
+	public boolean updatefile(String path, String name, String rename,
+			boolean isdir) {
+		String[] str = name.split("/");
+		String rename2="";
+		if(str.length-1>0){
+			for(int i=0;i<str.length-1;i++){
+				if(i==0){
+					rename2+=str[i];
+				}else{
+					rename2+="/"+str[i];
+				}
+			}
+			rename2+="/"+rename;
+		}
+		try {
+			if (!isdir) {
+				hdfs.rename(name, rename2);
+			} else {
+				hdfs.rename(name, rename2);
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return true;
+	}
+
+	// private boolean isexist(Container container,String newpath)
+	// {
+	// StoredObject newObject = container.getObject(newpath);
+	// boolean isexist = newObject.exists();
+	// if (isexist) {
+	// return false;
+	// }
+	// return true;
+	// }
+	//
+	// private void renamedirfile(Container container,String path,String
+	// newpath)
+	// {
+	//
+	// StoredObject newObject = container.getObject(newpath);
+	// newObject.uploadObject(new byte[] {});
+	// StoredObject object = container.getObject(path);
+	// object.delete();
+	// }
+	//
+	// private boolean renamefile(int len,Container container,String path,String
+	// name)
+	// {
+	// String temppath = UtilTools.replaceStr(path);
+	//
+	// StoredObject object = container.getObject(temppath);
+	// String tmp = temppath.substring(0, temppath.lastIndexOf("/")+1);
+	//
+	// StoredObject newObject = container.getObject(tmp + name);
+	//
+	// boolean isexist = newObject.exists();
+	// if (isexist) {
+	// return false;
+	// }
+	//
+	// object.copyObject(container, newObject);
+	// object.delete();
+	// return true;
+	// }
+	//
+	// private void renamecdirfile(Container container,String cpath,String
+	// path,String newpath)
+	// {
+	// String temppath = UtilTools.replaceStr(cpath);
+	// // String[] strs = temppath.split(path);
+	// String tpath = temppath.substring(path.length());
+	// StoredObject newObject = container.getObject(newpath+tpath);
+	// newObject.uploadObject(new byte[] {});
+	// StoredObject object = container.getObject(temppath);
+	// object.delete();
+	// }
+	//
+	// private void renamecfilefile(int len,Container container,String
+	// cpath,String path,String newpath)
+	// {
+	// String temppath = UtilTools.replaceStr(cpath);
+	// if (temppath.endsWith("/"))
+	// {
+	// return;
+	// }
+	// // String[] strs = temppath.split(path);
+	// String tpath = temppath.substring(path.length());
+	// StoredObject newObject = container.getObject(newpath+tpath);
+	// StoredObject object = container.getObject(temppath);
+	// object.copyObject(container, newObject);
+	// object.delete();
+	// }
+	//
+	// private void rename(int len,Container container,String epath,String
+	// path,String newpath)
+	// {
+	// Directory directory = new Directory(epath, '/');
+	// Collection<DirectoryOrObject> objects =
+	// container.listDirectory(directory);
+	// for (DirectoryOrObject c : objects) {
+	// if (c.isDirectory()) {
+	// String cpath = c.getAsDirectory().getName();
+	// rename(len,container,cpath,path, newpath);
+	// renamecdirfile(container,cpath,path, newpath);
+	// } else {
+	// String temppath = c.getName();//c.getAsObject().getPath();
+	// renamecfilefile(len,container,temppath,path, newpath);
+	// }
+	// }
+	// }
+
+	/**
+	 * 复制文件
+	 * 
+	 * @param email
+	 * @param path
+	 */
+	public boolean copyfile(String username,List<Map<String,Object>> list) {
+		
+		for (Map<String, Object> map : list) {
+			String path = (String) map.get("path");
+			String newpath = (String) map.get("newpath");
+			String name = (String) map.get("name");
+			String tisDir = (String) map.get("isDir");
+			try {
+				hdfs.copy(new String[]{path}, newpath, false);
+			} catch (Exception e) {
+			}
+		}
+		
+		
+		return true;
+	}
+
+	/**
+	 * 移动文件
+	 * 
+	 * @param email
+	 * @param path
+	 */
+	public boolean movefile(String username,List<Map<String,Object>> list) {
+		
+		for (Map<String, Object> map : list) {
+			String path = (String) map.get("path");
+			String newpath = (String) map.get("newpath");
+			String name = (String) map.get("name");
+			String tisDir = (String) map.get("isDir");
+			try {
+				hdfs.copy(new String[]{path}, newpath, true);
+			} catch (Exception e) {
+			}
+		}
+		
+		
+		return true;
+	}
+
+//	private void copydirfile(int len, Container container, String path,
+//			String newpath, String name, String epath) {
+//		Directory directory = new Directory(epath, '/');
+//		Collection<DirectoryOrObject> objects = container
+//				.listDirectory(directory);
+//		for (DirectoryOrObject c : objects) {
+//			if (c.isDirectory()) {
+//				String cpath = c.getAsDirectory().getName();
+//				// String[] strs = cpath.split(path);
+//				String tpath = cpath.substring(path.length());
+//				String tnewpath = newpath + name + "/" + tpath;// strs[1];
+//				copydir(container, tnewpath);
+//				copydirfile(len, container, path, newpath, name, cpath);
+//			} else {
+//				String temppath = c.getName();
+//				if (temppath.endsWith("/")) {
+//					continue;
+//				}
+//				// String[] strs = temppath.split(path);
+//				String tpath = temppath.substring(path.length());
+//				String tnewpath = newpath + name + "/" + tpath;// strs[1];
+//				copyfile(container, temppath, tnewpath);
+//			}
+//		}
+//	}
+//
+//	private void movedirfile(Container container, String path, String newpath,
+//			String name, String epath) {
+//		Directory directory = new Directory(epath, '/');
+//		Collection<DirectoryOrObject> objects = container
+//				.listDirectory(directory);
+//		for (DirectoryOrObject c : objects) {
+//			if (c.isDirectory()) {
+//				String cpath = c.getAsDirectory().getName();
+//				// String[] strs = cpath.split(path);
+//				String tpath = cpath.substring(path.length());
+//				String tnewpath = newpath + name + "/" + tpath;// strs[1];
+//				movedir(container, cpath, tnewpath);
+//				movedirfile(container, path, newpath, name, cpath);
+//			} else {
+//				String temppath = c.getName();
+//				if (temppath.endsWith("/")) {
+//					continue;
+//				}
+//				// String[] strs = temppath.split(path);
+//				String tpath = temppath.substring(path.length());
+//				String tnewpath = newpath + name + "/" + tpath;// strs[1];
+//				movefile(container, temppath, tnewpath);
+//			}
+//		}
+//	}
+//
+//	private void copydir(Container container, String newpath) {
+//		StoredObject newObject = container.getObject(newpath);
+//		if (newObject.exists()) {
+//			return;
+//		}
+//		newObject.uploadObject(new byte[] {});
+//	}
+//
+//	private void movedir(Container container, String path, String newpath) {
+//		StoredObject object = container.getObject(path);
+//		StoredObject newObject = container.getObject(newpath);
+//		if (newObject.exists()) {
+//			return;
+//		}
+//		newObject.uploadObject(new byte[] {});
+//		if (object.exists()) {
+//			object.delete();
+//		}
+//	}
+//
+//	private void copyfile(Container container, String path, String newpath) {
+//		StoredObject object = container.getObject(path);
+//		StoredObject newObject = container.getObject(newpath);
+//		object.copyObject(container, newObject);
+//	}
+//
+//	private void movefile(Container container, String path, String newpath) {
+//		StoredObject object = container.getObject(path);
+//		StoredObject newObject = container.getObject(newpath);
+//		object.copyObject(container, newObject);
+//		object.delete();
+//	}
+
+	 /**
+	 * 删除垃圾箱的文件
+	 *
+	 * @param email
+	 * @param path
+	 */
+	 public void deletegarbagefile(String username, String path) {
+	// Account account = UtilTools.getAccount();
+	// Container container = account.getContainer(username);
+	//
+	// StoredObject object = container.getObject(path);
+	// object.delete();
+	 }
+
+	/**
+	 * 判断原来的路径上是否已经有文件了
+	 * 
+	 * @param email
+	 * @param path
+	 */
+	public boolean backhasfile(String username, String path) {
+//		Account account = UtilTools.getAccount();
+//		Container container = account.getContainer(username);
+//		Container garbagecontainer = account
+//				.getContainer(Constants.GARBAGE_PREFIX + username);
+//
+//		StoredObject object = garbagecontainer.getObject(path);
+//		String oldpath = (String) object.getMetadata("oldpath");
+//		StoredObject oldObject = container.getObject(oldpath);
+//
+//		if (oldObject.exists()) {
+//			return true;
+//		}
+		return false;
+	}
+
+	 /**
+	 * 还原垃圾箱的文件
+	 *
+	 * @param email
+	 * @param path
+	 */
+	 public void backgarbagefile(String username, List<Map<String, Object>>
+	 list) {
+	// Account account = UtilTools.getAccount();
+	// Container container = account.getContainer(username);
+	// Container garbagecontainer =
+	// account.getContainer(Constants.GARBAGE_PREFIX + username);
+	// for (Map<String, Object> map : list) {
+	// // String name = (String) map.get("name");
+	// String path = (String) map.get("path");
+	// String tisDir = (String) map.get("isDir");
+	// boolean isDir = "true".equals(tisDir) ? true:false;
+	// if (isDir)
+	// {
+	// backdfile(container, garbagecontainer, path);
+	// backdirfile(container, garbagecontainer, path);
+	// }
+	// else
+	// {
+	// backfile(container, garbagecontainer, path);
+	// }
+	// }
+	 }
+
+//	private void backdirfile(Container container, Container garbagecontainer,
+//			String path) {
+//		Directory directory = new Directory(path, '/');
+//		Collection<DirectoryOrObject> objects = garbagecontainer
+//				.listDirectory(directory);
+//		for (DirectoryOrObject c : objects) {
+//			if (c.isDirectory()) {
+//				String cpath = c.getAsDirectory().getName();
+//				backdfile(container, garbagecontainer, cpath);
+//				backdirfile(container, garbagecontainer, cpath);
+//			} else {
+//				String temppath = c.getName();
+//				if (temppath.endsWith("/")) {
+//					continue;
+//				}
+//				backfile(container, garbagecontainer, temppath);
+//			}
+//		}
+//	}
+//
+//	private String getOldPath(Map<String, Object> metadata) {
+//		for (String key : metadata.keySet()) {
+//			if ("path".equalsIgnoreCase(key)) {
+//				try {
+//					return URLDecoder.decode((String) metadata.get(key),
+//							"utf-8");
+//				} catch (Exception e) {
+//					return null;
+//				}
+//			}
+//		}
+//		return null;
+//	}
+//
+//	private void backdfile(Container container, Container garbagecontainer,
+//			String path) {
+//		StoredObject garbageobject = garbagecontainer.getObject(path);
+//		Map<String, Object> metadata = garbageobject.getMetadata();
+//		String oldpath = getOldPath(metadata);
+//		if (oldpath != null) {
+//			StoredObject object = container.getObject(oldpath);
+//			object.uploadObject(new byte[] {});
+//			garbageobject.delete();
+//		}
+//	}
+//
+//	private void backfile(Container container, Container garbagecontainer,
+//			String path) {
+//		StoredObject garbageobject = garbagecontainer.getObject(path);
+//		Map<String, Object> metadata = garbageobject.getMetadata();
+//		String oldpath = getOldPath(metadata);
+//		if (oldpath != null) {
+//			StoredObject object = container.getObject(oldpath);
+//			garbageobject.copyObject(container, object);
+//			garbageobject.delete();
+//		}
+//	}
+
+	 /**
+	 * 清空垃圾箱
+	 *
+	 * @param email
+	 * @param path
+	 */
+	 public void deleteallgarbagefile(String username) {
+	// Account account = UtilTools.getAccount();
+	// Container container = account.getContainer(Constants.GARBAGE_PREFIX +
+	// username);
+	// Collection<StoredObject> objects = container.list();
+	// for (StoredObject c : objects) {
+	// c.delete();
+	// }
+	 }
+
+	/**
+	 * 下载文件
+	 * 
+	 * @param email
+	 * @param path
+	 */
+	public void download(String path, String name,String downloadfile) {
+		File f = new File(downloadfile);
+		if (!f.exists()) {
+			try {
+				hdfs.downLoad(path+"/"+name, downloadfile);
+			} catch (Exception e) {
+			}
+		}
+
+	}
+	
+	public void download(String path,String downloadfile) {
+		File f = new File(downloadfile);
+		if (!f.exists()) {
+			try {
+				hdfs.downLoad(path, downloadfile);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+
+	}
+	
+	public void download(String path,OutputStream out) {
+	
+			try {
+				hdfs.downLoad( path, out);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+	}
+	
+	
+}

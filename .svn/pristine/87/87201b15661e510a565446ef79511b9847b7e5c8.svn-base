@@ -1,0 +1,938 @@
+/*
+ * Copyright (c) 2014, 2016, XIANDIAN and/or its affiliates. All rights reserved.
+ * XIANDIAN PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ *
+ */
+package com.xiandian.cloud.storage.sh;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.openstack4j.api.OSClient.OSClientV2;
+import org.openstack4j.model.common.DLPayload;
+import org.openstack4j.model.common.Payloads;
+import org.openstack4j.model.storage.object.SwiftAccount;
+import org.openstack4j.model.storage.object.SwiftContainer;
+import org.openstack4j.model.storage.object.SwiftObject;
+import org.openstack4j.model.storage.object.options.ContainerListOptions;
+import org.openstack4j.model.storage.object.options.ObjectListOptions;
+import org.openstack4j.model.storage.object.options.ObjectLocation;
+import org.openstack4j.model.storage.object.options.ObjectPutOptions;
+
+import com.xiandian.cloud.storage.cons.Constants;
+import com.xiandian.cloud.storage.sh.abst.SwiftStorage;
+import com.xiandian.cloud.storage.sh.bean.FileBean;
+import com.xiandian.cloud.storage.sh.security.QStringUtil;
+import com.xiandian.cloud.storage.sh.util.UtilTools;
+
+/**
+ * Swift 具体实现
+ * 
+ * @author 云计算应用与开发项目组
+ * @since V1.4
+ */
+public class SwiftDFS extends SwiftStorage {
+
+	private OSClientV2 os;
+	
+	
+	
+	// logUtil.info(QEncodeUtil.aesEncrypt(QStringUtil.timeTostrHMS(new
+	// Date())+"-"+str,QEncodeUtil.ydy));
+	private void logger(String str) {
+		LogUtil logUtil = new LogUtil();
+		logUtil.info(QStringUtil.timeTostrHMS(new Date()) + "-" + str);
+	}
+
+	/**
+	 * 描述：创建容器，根据根路径
+	 * 
+	 * @param rootPath
+	 *            根路径
+	 * @return boolean
+	 */
+	public boolean createContainer(String rootPath) {
+		os = UtilTools.getConnection();
+		SwiftAccount swiftAccount = os.objectStorage().account().get();
+		List<? extends SwiftContainer> containers = os.objectStorage()
+				.containers()
+				.list(ContainerListOptions.create().startsWith(rootPath));
+		if (containers.isEmpty()) {
+			os.objectStorage().containers().create(rootPath);
+			return true;
+		} else {
+			for (SwiftContainer container : containers) {
+				if (!rootPath.equals(container.getName())) {
+					os.objectStorage().containers().create(rootPath);
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private Map<String, String> getSplitPath(String path) {
+		String[] strPath = path.split("/");
+		String rootPath = "";
+		path = "";
+		for (int i = 0; i < strPath.length; i++) {
+			if (i == 0) {
+				rootPath = strPath[0];
+			} else {
+				if (i == strPath.length - 1) {
+					if (strPath[i].contains(".")) {
+						path += strPath[i];
+					} else {
+						path += strPath[i] + "/";
+					}
+				} else {
+					path += strPath[i] + "/";
+				}
+
+			}
+		}
+		Map map = new HashMap();
+		map.put("rootPath", rootPath);
+		map.put("path", path);
+		return map;
+	}
+
+	/**
+	 * 获取文件名
+	 * 
+	 * @param path
+	 * @return
+	 */
+	private String getName(String path) {
+		if (path != null && "/".equals(path.substring(path.length() - 1))) {
+			path = path.substring(0, path.length() - 1);
+		}
+		return path.substring(path.lastIndexOf("/") + 1);
+	}
+
+	/**
+	 * 获取文件类表
+	 * 
+	 * @param rpath
+	 *            当前目录
+	 * @return List
+	 */
+	@Override
+	public List getFile(String rpath) {
+		os = UtilTools.getConnection();
+		Map mappath = this.getSplitPath(rpath);
+		String rootPath = mappath.get("rootPath").toString();
+		String path = mappath.get("path").toString();
+		List<? extends SwiftObject> objs = os.objectStorage().objects()
+				.list(rootPath, ObjectListOptions.create().path(path));
+		
+
+		List list = new ArrayList();
+		for (SwiftObject obj : objs) {
+			FileBean fb = new FileBean();
+			String filePath = obj.getName();
+			fb.setPath(filePath);
+			fb.setName(this.getName(filePath));
+			boolean flag = this.isDirectory(filePath);
+			fb.setIsdirectory(flag);
+			if (!flag) {
+				fb.setLength(obj.getSizeInBytes());
+			}
+//			fb.setLastmodified(obj.getLastModified().toString());
+			SimpleDateFormat datefarmat =new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			String dateString = datefarmat.format(obj.getLastModified());
+			fb.setLastmodified(dateString);
+			
+			list.add(fb);
+		}
+		return list;
+	}
+
+	/**
+	 * 判断是否为文件夹
+	 * @param name
+	 * @return
+	 */
+	public boolean isDirectory(String name){
+		if (name != null && "/".equals(name.substring(name.length() - 1))) {
+			return true;
+		}
+		return false;
+	}
+	
+
+	/**
+	 * 描述：上传文件方法
+	 * 
+	 * @param rpath
+	 *            当前目录
+	 * @param name
+	 *            文件名称
+	 * @param filepath
+	 *            上传文件的路径
+	 * @return
+	 * 
+	 */
+	@Override
+	public boolean createFile(String username, String path, String name,
+			String filepath) {
+		 os = UtilTools.getConnection();
+		
+		if(path.equals("")){
+			path=null;
+		}else{
+			path=path.substring(0,path.length()-1);
+		}
+		os.objectStorage()
+				.objects()
+				.put(username, name, Payloads.create(new File(filepath)),
+						ObjectPutOptions.create().path(path));
+		return true;
+	}
+
+	/**
+	 * 描述：文件重命名
+	 * 
+	 * @param rpath
+	 *            重命名文件的路径
+	 * @param name
+	 *            重命名文件名称
+	 * @return boolean
+	 */
+	@Override
+	public boolean renameFile(String rpath, String name) {
+		 os=UtilTools.getConnection();
+		Map mappath = getSplitPath(rpath);
+		String path = mappath.get("path").toString();
+		String rootpath =mappath.get("rootPath").toString();
+		String newpath="";
+		String str[]=path.split("/");
+		for(int i=0;i<str.length;i++){
+			if(i==str.length-1){
+				newpath+=name;
+			}else{
+				newpath+=str[i]+"/";
+			}
+		}
+		os.objectStorage().objects().copy(ObjectLocation.create(rootpath, path), ObjectLocation.create(rootpath, newpath));
+		os.objectStorage().objects().delete(rootpath, path);
+		return true;
+	}
+
+	/**
+	 * 描述：复制文件
+	 * 
+	 * @param rpath
+	 *            真被复制的文件路径
+	 * @param rnewpath
+	 *            新的文件路径
+	 * @return boolean
+	 */
+	@Override
+	public boolean copyFile(String rpath, String rnewpath) {
+		
+		 os=UtilTools.getConnection();
+		
+		Map mappath = getSplitPath(rpath);
+		String path = mappath.get("path").toString();
+		String rootPath = mappath.get("rootPath").toString();
+		Map nmappath = getSplitPath(rnewpath);
+		String npath = nmappath.get("path").toString();
+		String nrootpath=nmappath.get("rootPath").toString();
+		
+		boolean isexist=this.isexist(nrootpath, npath);
+		
+		if(isexist){
+			os.objectStorage().objects().copy(ObjectLocation.create(rootPath, path), ObjectLocation.create(nrootpath, npath));
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * 描述：移动文件
+	 * 
+	 * @param rpath
+	 *            准备要移动的文件路径
+	 * @param newpath
+	 *            新的文件路径
+	 * @return boolean
+	 */
+	@Override
+	public boolean moveFile(String rpath, String newpath) {
+		 os=UtilTools.getConnection();
+		
+		Map mappath = getSplitPath(rpath);
+		String path = mappath.get("path").toString();
+		String rootpath=mappath.get("rootPath").toString();
+		Map nmappath = getSplitPath(newpath);
+		String npath = nmappath.get("path").toString();
+		String nrootpath=nmappath.get("rootPath").toString();
+		
+		boolean isexist=this.isexist(nrootpath, npath);
+		
+		if(isexist){
+			os.objectStorage().objects().copy(ObjectLocation.create(rootpath, path), ObjectLocation.create(nrootpath, npath));
+			os.objectStorage().objects().delete(rootpath, path);
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * 描述：下载文件
+	 * 
+	 * @param rpath
+	 *            要下载的文件路径
+	 * @return byte[]
+	 */
+	@Override
+	public byte[] downloadFile(String rpath) {
+		 os = UtilTools.getConnection();
+		Map mappath = this.getSplitPath(rpath);
+		String rootPath = mappath.get("rootPath").toString();
+		String path = mappath.get("path").toString();
+		DLPayload dl = os.objectStorage().objects().download(rootPath, path);
+
+		InputStream ip = dl.getInputStream();
+		byte[] in_b = null;
+		ByteArrayOutputStream swapStream = new ByteArrayOutputStream();
+		byte[] buff = new byte[100];
+		int rc = 0;
+		try {
+			while ((rc = ip.read(buff, 0, 100)) > 0) {
+				swapStream.write(buff, 0, rc);
+			}
+			in_b = swapStream.toByteArray();
+			swapStream.close();
+			ip.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return in_b;
+	}
+
+	private boolean haschild(String rootpath,String path) {
+		 os=UtilTools.getConnection();
+		List<? extends SwiftObject> objs=os.objectStorage().objects().list(rootpath, ObjectListOptions.create()
+				.path(path)
+				);
+		for(SwiftObject swiftObject:objs){
+			boolean flag=this.isDirectory(swiftObject.getName());
+ 			if(flag){
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * 描述：创建文件夹
+	 * 
+	 * @param rpath
+	 *            文件夹的主目录
+	 * @param path
+	 *            创建文件件路径
+	 * @return boolean
+	 * 
+	 */
+	@Override
+	public boolean createDir(String rootPath, String path) {
+		 os = UtilTools.getConnection();
+		os.objectStorage().containers().createPath(rootPath, path);
+		return true;
+	}
+
+	/**
+	 * 描述：重命名文件夹
+	 * 
+	 * @param rpath
+	 *            文件目录的路劲
+	 * @param name
+	 *            重命名文件的名称
+	 * @return boolean
+	 */
+	@Override
+	public boolean renameDir(String rpath, String filename) {
+		Map mappath = getSplitPath(rpath);
+		String path = mappath.get("path").toString();
+		String rootpath = mappath.get("rootPath").toString();
+		// logger(mappath.get("rootPath").toString()+"执行renameDir方法，重命名目录文件");
+
+		if (!path.contains("/")) {
+			path = "/" + mappath.get("path").toString();
+		}
+
+		String temppath = UtilTools.replaceStr(path);
+		String endstr = temppath.substring(0, temppath.length() - 1);
+		int index = endstr.lastIndexOf("/");
+		String newpath = null;
+		if (index != -1) {
+			newpath = temppath.substring(0, index + 1) + filename + "/";
+		} else {
+			newpath = filename + "/";
+		}
+		boolean flag = isexist(rootpath, newpath);
+		if (flag) {
+			rename( rootpath, path, path, newpath);
+			renamedirfile(rootpath, path, newpath);
+			return flag;
+		}
+		return flag;
+
+	}
+
+	private void renamecdirfile(String rootpath, String cpath, String path,
+			String newpath) {
+		 os=UtilTools.getConnection();
+		
+		String str1[]=newpath.split("/");
+		String str2[]=cpath.split("/");
+		String strpath="";
+		for(int i=0;i<str2.length;i++){
+			if(i<str1.length){
+				strpath +=str1[i]+"/";
+			}else{
+				strpath += str2[i]+"/";
+			}
+		}
+		os.objectStorage().objects().copy(ObjectLocation.create(rootpath, cpath), ObjectLocation.create(rootpath, strpath));
+		os.objectStorage().objects().delete(ObjectLocation.create(rootpath, cpath));
+	}
+
+	private void rename( String rootpath, String epath, String path,
+			String newpath) {
+		 os = UtilTools.getConnection();
+		
+		List<? extends SwiftObject> objs = os.objectStorage().objects().list(rootpath,ObjectListOptions.create()
+                .path(epath)
+             );
+		for (SwiftObject swiftObject : objs) {
+			if (swiftObject.isDirectory()) {
+				String cpath = swiftObject.getName();
+				rename(rootpath, cpath, path, newpath);
+				renamecdirfile(rootpath, cpath, path, newpath);
+			} else {
+				String temppath = swiftObject.getName();
+				renamecfilefile( rootpath, temppath, path, newpath);
+			}
+		}
+	}
+
+	private void renamecfilefile( String rootpath, String cpath,
+			String path, String newpath) {
+		 os = UtilTools.getConnection();
+		
+		String str1[]=newpath.split("/");
+		String str2[]=cpath.split("/");
+		String strpath="";
+		for(int i=0;i<str2.length;i++){
+			if(i<str1.length){
+				strpath +=str1[i]+"/";
+			}else if(i==str2.length-1){
+				strpath += str2[i];
+			}else{
+				strpath += str2[i]+"/";
+			}
+		}
+		os.objectStorage().objects().copy(ObjectLocation.create(rootpath, cpath), ObjectLocation.create(rootpath, strpath));
+		os.objectStorage().objects().delete(ObjectLocation.create(rootpath, cpath));
+	}
+
+	private void renamedirfile(String rootpath, String path, String newpath) {
+		 os = UtilTools.getConnection();
+
+		os.objectStorage().objects().copy(ObjectLocation.create(rootpath, path), ObjectLocation.create(rootpath, newpath));
+		os.objectStorage().objects().delete(ObjectLocation.create(rootpath, path));
+	}
+
+	private boolean isexist(String rootpath, String newpath)
+
+	{
+		 os = UtilTools.getConnection();
+		
+		List<? extends SwiftObject> objs = os.objectStorage().objects().list(rootpath,ObjectListOptions.create()
+             );
+		for(SwiftObject swiftObject: objs){
+//			System.out.println(swiftObject.getName());
+			if(swiftObject.getName().equals(newpath)){
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	/**
+	 * 描述：拷贝目录
+	 * 
+	 * @param rpath
+	 *            要拷贝文件夹的目录
+	 * @param rnewpath
+	 *            拷贝到某文件夹中的目录
+	 * @return boolean
+	 */
+	@Override
+	public boolean copyDir(String rpath, String rnewpath) {
+		Map mappath = getSplitPath(rpath);
+		String rmpath = mappath.get("path").toString();
+		String rootpath = mappath.get("rootPath").toString();
+		// logger(mappath.get("rootPath").toString()+"执行moveDir方法，移动目录文件");
+
+		Map rmappath = getSplitPath(rnewpath);
+		String rnpath = rmappath.get("path").toString();
+
+		int len = rootpath.length();
+		String path = rmpath;
+		String newpath = rnpath;
+		String name = rmpath.split("/")[rmpath.split("/").length - 1];
+		if (path.equals(newpath)) {
+			return false;
+		}
+		copydir(rootpath, path, newpath + name + "/");
+		copydirfile(rootpath, path, newpath, name, path);
+		return true;
+	}
+	
+	// 复制文件夹里的文件、文件夹
+	private void copyDirFiles(String rootPath, String path){
+		 os = UtilTools.getConnection();
+		List<? extends SwiftObject> list = os.objectStorage().objects().list(rootPath, ObjectListOptions.create().path(path));
+		for(SwiftObject so :list){
+			
+		}
+	}
+	
+	/**
+	 * 复制公用方法
+	 * @param os
+	 * @param srcContainer
+	 * @param destContainer
+	 * @param srcPath
+	 * @param destPath
+	 */
+	private void copy(String srcContainer, String destContainer, String srcPath, String destPath){
+		 os = UtilTools.getConnection();
+		ObjectLocation srcLocation = ObjectLocation.create(srcContainer, srcPath);
+		ObjectLocation destLocation = ObjectLocation.create(destContainer, destPath);
+		os.objectStorage().objects().copy(srcLocation, destLocation);
+	}
+
+	private void copydir(String rootpath, String path,String newpath) {
+		 os=UtilTools.getConnection();
+		os.objectStorage().objects().copy(ObjectLocation.create(rootpath, path), ObjectLocation.create(rootpath, newpath));
+	}
+
+	private void copydirfile(String rootpath, String path,
+			String newpath, String name, String epath) {
+		 os=UtilTools.getConnection();
+		List<? extends SwiftObject> objs = os.objectStorage().objects().list(rootpath,ObjectListOptions.create()
+                .path(epath)
+             );
+		for (SwiftObject swiftObject : objs) {
+			if (swiftObject.isDirectory()) {
+				String cpath = swiftObject.getName();
+				String tpath = cpath.substring(path.length());
+				String tnewpath = newpath + name + "/" + tpath;// strs[1];
+				copydir(rootpath, cpath, tnewpath);
+				copydirfile(rootpath, path, newpath, name, cpath);
+			} else {
+				String temppath = swiftObject.getName();
+				if (temppath.endsWith("/")) {
+					continue;
+				}
+				String tpath = temppath.substring(path.length());
+				String tnewpath = newpath + name + "/" + tpath;// strs[1];
+				copyfile(rootpath, temppath, tnewpath);
+			}
+		}
+	}
+
+	private void copyfile(String rootpath, String path, String newpath) {
+		 os=UtilTools.getConnection();
+		os.objectStorage().objects().copy(ObjectLocation.create(rootpath, path), ObjectLocation.create(rootpath, newpath));
+	}
+	
+	/**
+	 * 描述：移动目录
+	 * 
+	 * @param rpath
+	 *            要移动文件夹的目录
+	 * @param rnewpath
+	 *            移动到某文件夹中的目录
+	 * @return boolean
+	 */
+	@Override
+	public boolean moveDir(String rpath, String rnewpath) {
+		Map mappath = getSplitPath(rpath);
+		String rmpath = mappath.get("path").toString();
+		String rootpath = mappath.get("rootPath").toString();
+		// logger(mappath.get("rootPath").toString()+"执行moveDir方法，移动目录文件");
+
+		Map rmappath = getSplitPath(rnewpath);
+		String rnpath = rmappath.get("path").toString();
+
+		int len = rootpath.length();
+		String path = rmpath;
+		String newpath = rnpath;
+		String name = rmpath.split("/")[rmpath.split("/").length - 1];
+		if (path.equals(newpath)) {
+			return false;
+		}
+		movedir(rootpath, path, newpath + name + "/");
+		movedirfile(rootpath, path, newpath, name, path);
+		return true;
+	}
+
+	private void movedir(String rootpath, String path, String newpath) {
+		 os=UtilTools.getConnection();
+		os.objectStorage().objects().copy(ObjectLocation.create(rootpath, path), ObjectLocation.create(rootpath, newpath));
+		os.objectStorage().objects().delete(rootpath, path);
+	}
+
+	private void movedirfile(String rootpath, String path, String newpath,
+			String name, String epath) {
+		 os=UtilTools.getConnection();
+		List<? extends SwiftObject> objs = os.objectStorage().objects().list(rootpath,ObjectListOptions.create()
+                .path(epath)
+             );
+		for (SwiftObject swiftObject : objs) {
+			if (swiftObject.isDirectory()) {
+				String cpath = swiftObject.getName();
+				String tpath = cpath.substring(path.length());
+				String tnewpath = newpath + name + "/" + tpath;// strs[1];
+				movedir(rootpath, cpath, tnewpath);
+				movedirfile(rootpath, path, newpath, name, cpath);
+			} else {
+				String temppath = swiftObject.getName();
+				if (temppath.endsWith("/")) {
+					continue;
+				}
+				String tpath = temppath.substring(path.length());
+				String tnewpath = newpath + name + "/" + tpath;// strs[1];
+				movefile(rootpath, temppath, tnewpath);
+			}
+		}
+	}
+
+
+
+	/**
+	 * 描述：搜索文件
+	 * 
+	 * @param rootPath
+	 *            根路径
+	 * @param key
+	 *            搜索条件
+	 * @return List
+	 */
+	public List searchFile(String rootPath, String key) {
+		 os = UtilTools.getConnection();
+		List<? extends SwiftObject> objs = os.objectStorage().objects()
+				.list(rootPath);
+
+		List list = new ArrayList();
+		for (SwiftObject c : objs) {
+			String path = c.getName();
+			String name = this.getName(c.getName());
+			boolean flag = c.isDirectory();
+			if (name != null
+					&& name.toLowerCase().matches(
+							".{0,}" + key.toLowerCase() + ".{0,}") && !flag) {
+				FileBean fb = new FileBean();
+				fb.setName(name);
+				boolean isdir = path.endsWith("/");
+				fb.setIsdirectory(isdir);
+				if (isdir) {
+					fb.setPath(c.getName());
+				} else {
+					String temppath = "temp" + File.separator
+							+ this.getName(c.getName());
+					fb.setFilepath(temppath);
+					fb.setPath(path);
+					fb.setLength(c.getSizeInBytes());
+					fb.setLastmodified(c.getLastModified().toString());
+				}
+				list.add(fb);
+			}
+		}
+
+		return list;
+	}
+
+	/**
+	 * 描述：根据type类型，进行文件分类查询
+	 * 
+	 * @param rootPath
+	 *            :根路径
+	 * @param type
+	 *            :1 图片 2 文档 3 视频 4 音乐 5 其他
+	 * @return List
+	 */
+	public List getCategoryStoredList(String rootPath, int type) {
+
+		 os = UtilTools.getConnection();
+		List<? extends SwiftObject> swiftObjects = os.objectStorage().objects()
+				.list(rootPath);
+		logger(rootPath + "执行getCategoryStoredList方法，文件分类查询");
+		List<SwiftObject> objects = new ArrayList<>();
+		for (SwiftObject so : swiftObjects) {
+			String fileName = so.getName();
+			switch (type) {
+			case 1:
+				if (UtilTools.isImage(fileName)) {
+					objects.add(so);
+				}
+				break;
+			case 2:
+				if (UtilTools.isDoc(fileName)) {
+					objects.add(so);
+				}
+				break;
+			case 3:
+				if (UtilTools.isMediea(fileName)) {
+					objects.add(so);
+				}
+				break;
+			case 4:
+				if (UtilTools.isMp3(fileName)) {
+					objects.add(so);
+				}
+				break;
+			case 5:
+				if (!UtilTools.isImage(fileName) && !UtilTools.isDoc(fileName)
+						&& !UtilTools.isMediea(fileName)
+						&& !UtilTools.isMp3(fileName) && !so.isDirectory()) {
+					objects.add(so);
+				}
+				break;
+			default:
+				break;
+			}
+		}
+
+		List<FileBean> list = new ArrayList<>();
+		for (SwiftObject so : objects) {
+			FileBean fb = new FileBean();
+			fb.setName(this.getName(so.getName()));
+			boolean flag = so.isDirectory();
+			fb.setIsdirectory(flag);
+			if (!flag) {
+				fb.setLength(so.getSizeInBytes());
+			}
+			fb.setPath(so.getName());
+			fb.setLastmodified(so.getLastModified().toString());
+			list.add(fb);
+		}
+		return list;
+	}
+
+	private void movefile(String rootpath, String path, String newpath) {
+		 os=UtilTools.getConnection();
+		os.objectStorage().objects().copy(ObjectLocation.create(rootpath, path), ObjectLocation.create(rootpath, newpath));
+		os.objectStorage().objects().delete(rootpath, path);
+	}
+
+	/**
+	 * 设置文件的元数据
+	 * @param os
+	 * @param rootPath
+	 * @param path
+	 */
+	public void setMetadata( OSClientV2 os, String rootPath, String path){
+		Map<String, String> myMetadataMap = new HashMap<>();
+		myMetadataMap.put("Oldpath", path); // 放入metadata中的key值强制首字母大写，其余小写
+		os.objectStorage().objects().updateMetadata(ObjectLocation.create(rootPath, path), myMetadataMap);
+	}
+	
+	/**
+	 * 删除文件、文件夹
+	 * @param rootPath
+	 * @param srcPath
+	 * @param name
+	 * @param isDir
+	 */
+	public void deleteFile(String rootPath, String srcPath, String name, boolean isDir){
+		if(isDir){
+			// 删除文件夹
+			this.deletefiles(rootPath, srcPath, name+"/");
+			// 删除文件夹中的文件
+			this.deletedirfile(rootPath, srcPath, name+"/");
+		}else{
+			this.deletefiles(rootPath, srcPath, name);
+		}
+	}
+	
+	/**
+	 * 删除文件/文件夹到回收站
+	 * @param rootPath
+	 * @param srcPath
+	 * @param destPath
+	 */
+	public void deletefiles(String rootPath, String srcPath, String destPath) {
+		 os = UtilTools.getConnection();
+		// 设置元数据
+		this.setMetadata(os, rootPath, srcPath);
+		// 复制到回收站
+		this.copy(rootPath, Constants.GARBAGE_PREFIX + rootPath, srcPath, destPath);
+		// 删除
+		this.delete(os, rootPath, srcPath);
+	}
+
+	/**
+	 * 删除公用方法
+	 * @param os
+	 * @param rootPath
+	 * @param srcPath
+	 */
+	private void delete(OSClientV2 os, String rootPath, String srcPath){
+		os.objectStorage().objects().delete(rootPath, srcPath);
+	}
+	
+	/**
+	 * 删除文件夹中的文件/文件夹 递归
+	 * @param rootPath
+	 * @param path
+	 * @param destPath
+	 */
+	private void deletedirfile(String rootPath, String path, String destPath) {
+		 os = UtilTools.getConnection();
+		List<? extends SwiftObject> list = os.objectStorage().objects().list(rootPath,ObjectListOptions.create().path(path));
+		for(SwiftObject so : list){
+			String filePath = so.getName();
+			String fileName = this.getName(filePath);
+			if (this.isDirectory(filePath)) { // 文件夹
+				// 删除文件夹到回收站
+				this.deletefiles(rootPath,filePath,destPath + fileName+"/");
+				// 删除文件夹下的文件
+				deletedirfile(rootPath, filePath, destPath + fileName+"/");
+			}else{ // 文件
+				// 删除文件到回收站
+				this.deletefiles(rootPath,filePath, destPath + fileName);
+			}
+		}
+	}
+
+	/**
+	 * 描述：清空垃圾箱
+	 * 
+	 * @param rootpath
+	 *            根路径
+	 */
+	public void deleteAllGarbageFile(String rootpath) {
+		
+		 os = UtilTools.getConnection();
+		List<? extends SwiftObject> list = os.objectStorage().objects().list(Constants.GARBAGE_PREFIX + rootpath);
+		for(SwiftObject so : list){
+			this.delete(os, Constants.GARBAGE_PREFIX + rootpath, so.getName());
+		}
+	}
+
+	/**
+	 * 描述：还原垃圾箱文件
+	 * 
+	 * @param rootPath
+	 *            根路径
+	 * @param path
+	 *            文件路径
+	 * @param isDir
+	 *            true 目录 false 非目录
+	 * @return void
+	 */
+	public void backgarbagefile(String rootPath, String path, boolean isDir) {
+		// logger(rootpath+"执行backgarbagefile方法，还原垃圾箱文件");
+		if (isDir) {
+			backFile(rootPath, path);
+			backDirFile(rootPath, path);
+		} else {
+			backFile(rootPath, path);
+		}
+	}
+	
+	/**
+	 * 递归还原文件夹内容
+	 * @param rootpath
+	 * @param path
+	 */
+	private void backDirFile(String rootPath, String path) {
+		 os = UtilTools.getConnection();
+		List<? extends SwiftObject> list = os.objectStorage().objects().list(Constants.GARBAGE_PREFIX + rootPath,ObjectListOptions.create().path(path));
+		for(SwiftObject so : list){
+			String filePath = so.getName();
+			this.backFile(rootPath,filePath);
+			if (this.isDirectory(filePath)) { // 文件夹
+				this.backDirFile(rootPath, filePath);
+			}
+		}
+	}
+
+	
+	/**
+	 * 还原文件、文件夹
+	 * @param rootPath
+	 * @param srcPath
+	 */
+	private void backFile(String rootPath, String srcPath){
+		 os = UtilTools.getConnection();
+		String garbagePath = Constants.GARBAGE_PREFIX + rootPath;
+		String oldPath = os.objectStorage().objects().getMetadata(garbagePath, srcPath).get("Oldpath");
+		this.copy(garbagePath, rootPath, srcPath, oldPath);
+		this.delete(os, garbagePath, srcPath);
+	}
+	
+	/**
+	 * 描述：获取目录文件
+	 * @param rpath 文件的目录
+	 * @return List
+	 */
+	@Override
+	public List getDir( String rpath) {
+		
+		 os=UtilTools.getConnection();
+
+		Map mappath =getSplitPath(rpath);
+		String path = mappath.get("path").toString();
+		String rootpath=mappath.get("rootPath").toString();
+//		Container container = account.getContainer(mappath.get("rootPath").toString());
+//		logger(mappath.get("rootPath").toString()+"执行getDir方法，获取目录文件");
+
+//		if(!path.contains("/")){
+//			path ="/"+mappath.get("path").toString();
+//		}
+		
+		List<? extends SwiftObject> objs;
+		if (path != null && path.length() > 1) {
+			objs=os.objectStorage().objects().list(rootpath,ObjectListOptions.create()
+					.path(path)
+					);
+		} else {
+			objs=os.objectStorage().objects().list(rootpath,ObjectListOptions.create()
+					.path(path));
+		}
+		List list = new ArrayList();
+		for (SwiftObject swiftObject : objs) {
+			FileBean fb = new FileBean();
+			String filePath = swiftObject.getName();
+			boolean flag = this.isDirectory(filePath);
+			fb.setName(this.getName(filePath));
+			fb.setIsdirectory(flag);
+			boolean haschild=this.haschild(rootpath, filePath);
+			fb.setHaschild(haschild);
+			if (flag) {
+				fb.setPath(filePath);
+				list.add(fb);
+			}
+		}
+		return list;
+	}
+}

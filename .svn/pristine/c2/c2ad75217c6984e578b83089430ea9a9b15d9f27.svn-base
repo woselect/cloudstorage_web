@@ -1,0 +1,921 @@
+/*
+ * Copyright (c) 2014, 2016, XIANDIAN and/or its affiliates. All rights reserved.
+ * XIANDIAN PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ *
+ */
+package com.xiandian.cloud.storage.web;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import net.sf.json.JSONArray;
+
+import org.openstack4j.api.OSClient.OSClientV3;
+import org.openstack4j.model.common.Identifier;
+import org.openstack4j.model.storage.object.SwiftContainer;
+import org.openstack4j.model.storage.object.SwiftObject;
+import org.openstack4j.openstack.OSFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.context.ContextLoader;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.ModelAndView;
+
+import com.xiandian.cloud.analysis.tokizen.utils.WordCount;
+import com.xiandian.cloud.storage.bean.MessageBean;
+import com.xiandian.cloud.storage.cons.Constants;
+import com.xiandian.cloud.storage.domain.ShareBean;
+import com.xiandian.cloud.storage.domain.User;
+import com.xiandian.cloud.storage.service.GroupService;
+import com.xiandian.cloud.storage.service.HadoopStorageService;
+import com.xiandian.cloud.storage.service.ShareService;
+import com.xiandian.cloud.storage.service.SwiftStorageService;
+import com.xiandian.cloud.storage.service.UserService;
+import com.xiandian.cloud.storage.service.sup.Storage;
+import com.xiandian.cloud.storage.sh.SwiftDFS;
+import com.xiandian.cloud.storage.sh.util.DateUtil;
+import com.xiandian.cloud.storage.util.Code;
+import com.xiandian.cloud.storage.util.UtilTools;
+
+/**
+ * 为存贮封装的调用API
+ * 
+ * @author 云计算应用与开发项目组
+ * @since V1.4
+ * 
+ */
+@Controller
+public class StorageController extends BaseController {
+	private WebApplicationContext wac = ContextLoader
+			.getCurrentWebApplicationContext();
+	private String beanName = UtilTools.getConfig().getProperty("storage");
+	private Storage storage = (Storage) wac.getBean(beanName);
+
+	@Autowired
+	private ShareService shareService;
+
+	@Autowired
+	private UserService userService;
+
+	@Autowired
+	private GroupService groupService;
+	@Autowired
+	private HadoopStorageService storageService;
+
+	/**
+	 * 取得主页的文件
+	 * 
+	 * @param request
+	 * @param response
+	 * @param path
+	 * @return
+	 */
+	@RequestMapping("/home")
+	public ModelAndView home(HttpServletRequest request,
+			HttpServletResponse response, String path) {
+		ModelAndView view = new ModelAndView();
+		User user = getSessionUser(request);
+		path = UtilTools.converStr(path);
+		List list = storage.getAllStoredList(user.getUsername(), path);
+		view.addObject("path", path);
+		view.addObject("search", "false");
+		view.addObject("list", list);
+		view.setViewName("/main");
+		view.addObject("type", 0);
+		return view;
+	}
+
+	/**
+	 * 取得主页的文件夹
+	 * 
+	 * @param request
+	 * @param response
+	 * @param path
+	 * @return
+	 */
+	@RequestMapping("/homedir")
+	@ResponseBody
+	public Object homedir(HttpServletRequest request,
+			HttpServletResponse response, String path) {
+		User user = getSessionUser(request);
+		String upath = request.getSession().getServletContext()
+				.getRealPath("/");
+		List list = storage.getAllStoredDirectoryList(user.getUsername(), path,
+				upath);
+		return new MessageBean(true, "", list);
+	}
+
+	/**
+	 * 搜索文件
+	 * 
+	 * @param request
+	 * @param response
+	 * @param path
+	 * @return
+	 */
+	@RequestMapping("/search")
+	public ModelAndView search(HttpServletRequest request,
+			HttpServletResponse response, String key) {
+		ModelAndView view = new ModelAndView();
+		User user = getSessionUser(request);
+		String upath = request.getSession().getServletContext()
+				.getRealPath("/");
+		key = UtilTools.converStr(key);
+		List list = storage.searchStoredList(user.getUsername(), upath, key);
+		view.addObject("list", list);
+		view.addObject("search", "true");
+		view.setViewName("/main");
+		return view;
+	}
+
+	/**
+	 * 取得主页的缩略图
+	 * 
+	 * @param request
+	 * @param response
+	 * @param path
+	 * @return
+	 */
+	@RequestMapping("/gridview")
+	public ModelAndView gridview(HttpServletRequest request,
+			HttpServletResponse response, String path) {
+		ModelAndView view = new ModelAndView();
+		User user = getSessionUser(request);
+		path = UtilTools.converStr(path);
+		List list = storage.getAllStoredList(user.getUsername(), path);
+		view.addObject("path", path);
+		view.addObject("list", list);
+		view.setViewName("/gridview");
+		return view;
+	}
+
+	/**
+	 * 取得特定类型的文件
+	 * 
+	 * @param request
+	 * @param response
+	 * @param type
+	 *            :1 图片格式 2 文档格式 3 视频格式 4 音乐格式 5 其他
+	 * @return
+	 */
+	@RequestMapping("/category")
+	public ModelAndView category(HttpServletRequest request,
+			HttpServletResponse response, int type) {
+
+		ModelAndView view = new ModelAndView();
+		User user = getSessionUser(request);
+		String upath = request.getSession().getServletContext()
+				.getRealPath("/");
+		List list = storage.getCategoryStoredList(user.getUsername(), type,
+				upath);
+		view.addObject("list", list);
+		view.addObject("search", "true");
+		view.addObject("type", type);
+		view.setViewName("/main");
+		return view;
+	}
+
+	/**
+	 * 取得特定类型的文件
+	 * 
+	 * @param request
+	 * @param response
+	 * @param type
+	 *            :1 图片格式 2 文档格式 3 视频格式 4 音乐格式 5 其他
+	 * @return
+	 */
+	@RequestMapping("/categoryview")
+	public ModelAndView categoryview(HttpServletRequest request,
+			HttpServletResponse response, int type) {
+
+		ModelAndView view = new ModelAndView();
+		User user = getSessionUser(request);
+		String upath = request.getSession().getServletContext()
+				.getRealPath("/");
+		List list = storage.getCategoryStoredList(user.getUsername(), type,
+				upath);
+		view.addObject("list", list);
+		view.setViewName("/gridview");
+		return view;
+	}
+
+	/**
+	 * 创建文件夹
+	 * 
+	 * @param request
+	 * @param response
+	 * @param name
+	 */
+	@RequestMapping("/createdir")
+	@ResponseBody
+	public Object createdir(HttpServletRequest request,
+			HttpServletResponse response, String path, String name) {
+		User user = getSessionUser(request);
+		boolean flag = false;
+		flag = storage.createDir(user.getUsername(), path, name);
+		return new MessageBean(flag, flag ? Constants.SUCCESS_3
+				: Constants.ERROR_4);
+	}
+
+	/**
+	 * 创建文件
+	 * 
+	 * @param request
+	 * @param response
+	 * @param name
+	 */
+	@RequestMapping("/createfile")
+	@ResponseBody
+	public Object createfile(HttpServletRequest request,
+			HttpServletResponse response, String path, String name,
+			String filepath) {
+		User user = getSessionUser(request);
+		String upath = request.getSession().getServletContext()
+				.getRealPath("/");
+		boolean flag = false;
+		flag = storage.createFile(user.getUsername(), path, name, upath
+				+ filepath);
+		return new MessageBean(flag, flag ? Constants.SUCCESS_4
+				: Constants.ERROR_5);
+	}
+
+	/**
+	 * 上传文件
+	 * 
+	 * @param request
+	 * @param response
+	 * @param file
+	 */
+	@RequestMapping("/uploadfile")
+	@ResponseBody
+	public Object uploadfile(HttpServletRequest request,
+			HttpServletResponse response,
+			@RequestParam(value = "qqfile", required = true) MultipartFile file) {
+		try {
+			if (!file.isEmpty()) {
+				byte[] bytes = file.getBytes();
+				String upath = request.getSession().getServletContext()
+						.getRealPath("/");
+				String uuid = UUID.randomUUID().toString();
+				String path = "upload/" + uuid + file.getOriginalFilename();
+				FileOutputStream fos = new FileOutputStream(upath + path);
+				fos.write(bytes);
+				fos.close();
+				return new MessageBean(true, Constants.SUCCESS_4, path);
+			} else {
+				return new MessageBean(false, Constants.ERROR_6);
+			}
+		} catch (Exception e) {
+			return new MessageBean(false, Constants.ERROR_6);
+		}
+	}
+
+	/**
+	 * 删除文件
+	 * 
+	 * @param request
+	 * @param response
+	 * @param name
+	 */
+	@RequestMapping("/deletefiles")
+	@ResponseBody
+	public Object deletefiles(HttpServletRequest request,
+			HttpServletResponse response,
+			@RequestBody List<Map<String, Object>> list) {
+		User user = getSessionUser(request);
+		storage.deletefiles(user, list);
+		return new MessageBean(true, Constants.SUCCESS_5);
+	}
+
+	/**
+	 * 还原文件
+	 * 
+	 * @param request
+	 * @param response
+	 * @param name
+	 */
+	@RequestMapping("/backfiles")
+	@ResponseBody
+	public Object backfiles(HttpServletRequest request,
+			HttpServletResponse response,
+			@RequestBody List<Map<String, Object>> list) {
+		User user = getSessionUser(request);
+		storage.backgarbagefile(user.getUsername(), list);
+		return new MessageBean(true, Constants.SUCCESS_5);
+	}
+
+	/**
+	 * 更新文件
+	 * 
+	 * @param request
+	 * @param response
+	 * @param name
+	 */
+	@RequestMapping("/updatefile")
+	@ResponseBody
+	public Object updatefile(HttpServletRequest request,
+			HttpServletResponse response, String path, String name,
+			boolean isDir) {
+		User user = getSessionUser(request);
+		boolean flag = storage
+				.updatefile(user.getUsername(), path, name, isDir);
+		return new MessageBean(flag, flag ? Constants.SUCCESS_7
+				: (isDir ? Constants.ERROR_4 : Constants.ERROR_5));
+	}
+
+	/**
+	 * 复制文件
+	 * 
+	 * @param request
+	 * @param response
+	 * @param name
+	 */
+	@RequestMapping("/copyfile")
+	@ResponseBody
+	public Object copyfile(HttpServletRequest request,
+			HttpServletResponse response,
+			@RequestBody List<Map<String, Object>> list) {
+		User user = getSessionUser(request);
+		boolean flag = false;
+		flag = storage.copyfile(user.getUsername(), list);
+		return new MessageBean(flag, flag ? Constants.SUCCESS_8
+				: Constants.ERROR_9);
+	}
+
+	/**
+	 * 移动文件
+	 * 
+	 * @param request
+	 * @param response
+	 * @param name
+	 */
+	@RequestMapping("/movefile")
+	@ResponseBody
+	public Object movefile(HttpServletRequest request,
+			HttpServletResponse response,
+			@RequestBody List<Map<String, Object>> list) {
+		User user = getSessionUser(request);
+		boolean flag = false;
+		flag = storage.movefile(user.getUsername(), list);
+		return new MessageBean(flag, flag ? Constants.SUCCESS_9
+				: Constants.ERROR_8);
+	}
+
+	/**
+	 * 取得垃圾箱的文件
+	 * 
+	 * @param request
+	 * @param response
+	 * @param path
+	 * @return
+	 */
+	@RequestMapping("/garbage")
+	public ModelAndView garbage(HttpServletRequest request,
+			HttpServletResponse response) {
+		ModelAndView view = new ModelAndView();
+		User user = getSessionUser(request);
+		List list = storage.getAllGarbageList(user.getUsername());
+		view.addObject("list", list);
+		view.addObject("type", 7);
+		view.setViewName("/garbage");
+		return view;
+	}
+
+	/**
+	 * 删除垃圾箱的文件
+	 * 
+	 * @param request
+	 * @param response
+	 * @param name
+	 */
+	@RequestMapping("/deletegarbagefiles")
+	@ResponseBody
+	public Object deletegarbagefiles(HttpServletRequest request,
+			HttpServletResponse response, String path) {
+		User user = getSessionUser(request);
+		storage.deletegarbagefile(user.getUsername(), path);
+		return new MessageBean(true, Constants.SUCCESS_5);
+	}
+
+	/**
+	 * 清空垃圾箱的文件
+	 * 
+	 * @param request
+	 * @param response
+	 * @param name
+	 */
+	@RequestMapping("/deleteallgarbagefile")
+	@ResponseBody
+	public Object deleteallgarbagefile(HttpServletRequest request,
+			HttpServletResponse response) {
+		User user = getSessionUser(request);
+		storage.deleteallgarbagefile(user.getUsername());
+		return new MessageBean(true, Constants.SUCCESS_5);
+	}
+
+	/**
+	 * 下载
+	 * 
+	 */
+	@RequestMapping("/download")
+	public void download(HttpServletRequest request,
+			HttpServletResponse response, String paths) {
+		try {
+			String[] strs = paths.split(",");
+			int len = strs.length;
+			if (len < 1) {
+				return;
+			}
+			User user = getSessionUser(request);
+			response.setContentType("text/html;charset=UTF-8");
+			request.setCharacterEncoding("UTF-8");
+			BufferedInputStream bis = null;
+			BufferedOutputStream bos = null;
+			String path = request.getSession().getServletContext()
+					.getRealPath("/");
+			String ctxPath = path + "export";
+
+			if (len == 1) {
+				String filepath = strs[0];// (String) map.get("path");
+				filepath = UtilTools.converStr(filepath);
+				byte[] b = new byte[] {};
+
+				if (storage instanceof SwiftStorageService) {
+					b = ((SwiftStorageService) storage).download(
+							user.getUsername(), filepath);
+				}
+
+				if (storage instanceof HadoopStorageService) {
+					String[] strsss = filepath.split("/");
+					String filename = strsss[strsss.length - 1];
+					String downLoadPath = ctxPath + File.separator + filename;
+					((HadoopStorageService) storage).download(filepath,
+							downLoadPath);
+
+				}
+
+				String[] strsss = filepath.split("/");
+				String filename = strsss[strsss.length - 1];
+
+				String downLoadPath = ctxPath + File.separator + filename;
+				File downLoadFile = new File(downLoadPath);
+				downLoadFile.createNewFile();
+				BufferedOutputStream buffer = new BufferedOutputStream(
+						new FileOutputStream(downLoadFile));
+				buffer.write(b);
+				buffer.flush();
+				buffer.close();
+
+				long fileLength = downLoadFile.length();
+				response.setContentType("application/octet-stream");
+				response.setHeader(
+						"Content-disposition",
+						"attachment; filename="
+								+ new String(filename.getBytes("utf-8"),
+										"ISO8859-1"));
+				response.setHeader("Content-Length", String.valueOf(fileLength));
+				bis = new BufferedInputStream(new FileInputStream(downLoadPath));
+				bos = new BufferedOutputStream(response.getOutputStream());
+				byte[] buff = new byte[2048];
+				int bytesRead;
+				while (-1 != (bytesRead = bis.read(buff, 0, buff.length))) {
+					bos.write(buff, 0, bytesRead);
+				}
+				bis.close();
+				bos.close();
+
+				downLoadFile.delete();
+
+			} else {
+				String[] strss = strs[0].split("/");
+				String temps = strss[strss.length - 1];
+				String[] strr = temps.split("\\.");
+				strr[0] = UtilTools.converStr(strr[0]);
+				String rootname = ctxPath + File.separator + strr[0];
+				File rfile = new File(rootname);
+				rfile.mkdir();
+				for (int i = 0; i < len; i++) {
+					String filepath = strs[i];// (String) map.get("path");
+					filepath = UtilTools.converStr(filepath);
+					byte[] b = new byte[] {};
+					if (storage instanceof SwiftStorageService) {
+						b = ((SwiftStorageService) storage).download(
+								user.getUsername(), filepath);
+					}
+					if (storage instanceof HadoopStorageService) {
+						String[] strsss = filepath.split("/");
+						String filename = strsss[strsss.length - 1];
+						String dpath = rootname + File.separator + filename;
+						((HadoopStorageService) storage).download(filepath,
+								dpath);
+						continue;
+					}
+
+					String[] strsss = filepath.split("/");
+					String filename = strsss[strsss.length - 1];
+
+					String dpath = rootname + File.separator + filename;
+					File dfile = new File(dpath);
+					dfile.createNewFile();
+					BufferedOutputStream buff = new BufferedOutputStream(
+							new FileOutputStream(dfile));
+					buff.write(b);
+					buff.flush();
+					buff.close();
+				}
+				// 打包生成tar.gz文件
+				File tarfile = new File(rootname + ".zip");
+				tarfile.createNewFile();
+				UtilTools.WriteToTarGzip(ctxPath + File.separator, strr[0],
+						strr[0] + ".zip");
+
+				// 下载tar.gz文件
+				String downLoadPath = rootname + ".zip";
+				String fp = "[批量下载]" + strr[0] + ".zip";
+				//
+				File downLoadFile = new File(downLoadPath);
+				long fileLength = downLoadFile.length();
+				//
+				response.setContentType("application/octet-stream");
+				response.setHeader(
+						"Content-disposition",
+						"attachment; filename="
+								+ new String(fp.getBytes("utf-8"), "ISO8859-1"));
+				response.setHeader("Content-Length", String.valueOf(fileLength));
+				bis = new BufferedInputStream(new FileInputStream(downLoadPath));
+				bos = new BufferedOutputStream(response.getOutputStream());
+				byte[] buff = new byte[2048];
+				int bytesRead;
+				while (-1 != (bytesRead = bis.read(buff, 0, buff.length))) {
+					bos.write(buff, 0, bytesRead);
+				}
+				bis.close();
+				bos.close();
+
+				downLoadFile.delete();
+				UtilTools.deletefile(rootname);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	/**
+	 * 下载分析数据，跳转数据分析页面
+	 * 
+	 * @param request
+	 * @param response
+	 * @param paths
+	 *            /1.csv
+	 * @param selectColumn
+	 *            1
+	 * @param num
+	 *            10
+	 * @return
+	 */
+	@RequestMapping("/analysis")
+	public ModelAndView analysis(HttpServletRequest request,
+			HttpServletResponse response, String paths, String selectColumn,
+			int num) {
+
+		try {
+			String[] swiftFilenames = paths.split(",");// swift上文件路径+名称
+			int len = swiftFilenames.length;// 获得数组长度
+			if (len < 1) {
+			}
+			User user = getSessionUser(request);
+			response.setContentType("text/html;charset=UTF-8");
+			request.setCharacterEncoding("UTF-8");
+			BufferedInputStream bis = null;
+			BufferedOutputStream bos = null;
+			String programPath = request.getSession().getServletContext()
+					.getRealPath("/"); // 获取项目路径
+			String downloadPath = programPath + "export"; // 下载文件路径为 项目路径+export
+			if (len == 1) {
+				String realFilename = swiftFilenames[0]; // realFilename为strs第一个文件
+				realFilename = UtilTools.converStr(realFilename);// 编码转换
+				byte[] b = new byte[] {};
+				b = ((SwiftStorageService) storage).download(
+						user.getUsername(), realFilename);// 下载文件
+															// user.getUsername容器名
+															// filepath文件名
+				String[] strsss = realFilename.split("/"); // 文件名用,分隔
+				String filename = strsss[strsss.length - 1];// 去除逗号
+				String downloadFile = downloadPath + File.separator + filename; // 获得下载文件本地路径，工程路径\\文件名
+				File downLoadFile = new File(downloadFile);
+				downLoadFile.createNewFile();
+				BufferedOutputStream buffer = new BufferedOutputStream(
+						new FileOutputStream(downLoadFile));
+				buffer.write(b);
+				buffer.flush();
+				buffer.close();
+				ModelAndView view = new ModelAndView();
+				request.getSession().setAttribute("loadData", downloadFile); // 设置下载文件+路径
+				request.getSession().setAttribute("type", selectColumn);// 设置页面选项
+				request.getSession().setAttribute("num", num);// 设置返回数
+				view.setViewName("/analysis" + selectColumn.trim());// 返回指定页面
+																	// /WEB-INF/jsp/analysis1.jsp
+				return view;// 带参数返回页面
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	/**
+	 * 数据分析，将分析结果返回页面
+	 * 
+	 * @param request
+	 * @param response
+	 * @return
+	 */
+	@RequestMapping("/loaddata")
+	@ResponseBody
+	public Object loadDate(HttpServletRequest request,
+			HttpServletResponse response) {
+		String programPath = request.getSession().getServletContext()
+				.getRealPath("/"); // 获取工程路径
+		String string = request.getSession().getAttribute("loadData")
+				.toString();// 获取下载路径
+		String type = request.getSession().getAttribute("type").toString();// 获取返回页面类型
+		int numberofReturnjson = (int) request.getSession().getAttribute("num");// 获取num
+		boolean endsWith = string.endsWith("txt"); // 判断是否为txt
+		JSONArray json = null;
+		try {
+			if (!endsWith) {// 不是txt
+				UtilTools.constrTxt(string, programPath);// 转化为txt
+				json = WordCount.Json(type, programPath
+						+ Constants.CONSTRTXTPATH, programPath,
+						numberofReturnjson);// 进行数据分析
+				File downLoadFile = new File(programPath
+						+ Constants.CONSTRTXTPATH);// 获取下载文件
+				downLoadFile.delete();// 删除下载的文件
+			} else {
+				json = WordCount.Json(type, string, programPath,
+						numberofReturnjson);// 进行数据分析
+				File downLoadFile = new File(string);// 获取下载文件
+				downLoadFile.delete();// 删除下载的文件
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		System.out.print(json);
+		return new MessageBean(true, "", json); // 向前台返回数据
+	}
+
+	/*	*//**
+	 * 获取用户网盘的大小
+	 */
+	/*
+	 * @RequestMapping("/storageSize")
+	 * 
+	 * @ResponseBody public Object storageSize(HttpServletRequest request,
+	 * HttpServletResponse response) { User user = getSessionUser(request);
+	 * String path = UtilTools.matchsPath(null,
+	 * getSessionUser(request).getUsername()); Long size =
+	 * storageService.getStorageSize(path); Map<String ,Object> storageMap = new
+	 * HashMap<String ,Object>(); storageMap.put("size", size/1024/1024);
+	 * storageMap.put("total", user.getCapacity()); return new
+	 * MessageBean(true,storageMap); }
+	 */
+
+	@RequestMapping("/createLink")
+	@ResponseBody
+	public Object createLink(HttpServletRequest request,
+			HttpServletResponse response, int type, String filename,
+			String filepath, String isdir, String length) {
+		User sessionUser = getSessionUser(request);
+		String Username = sessionUser.getUsername();
+		Integer id = sessionUser.getId();
+		String scheme = request.getScheme();
+		String serverName = request.getServerName();
+		int serverPort = request.getServerPort();
+		long currentTimeMillis = System.currentTimeMillis();
+		String url = request.getContextPath();
+		String port = serverPort == 80 ? "" : ":" + serverPort;
+		String urlpath = scheme + "://" + serverName + port + url
+				+ "/share.action?num=" + currentTimeMillis;
+		String dateToString = DateUtil.DateToString("yyyy-MM-dd HH:mm:ss",
+				new Date());
+		ShareBean shareBean = new ShareBean();
+		shareBean.setUserid(id);
+		shareBean.setIsdir(isdir);
+		shareBean.setFilename(filename);
+		shareBean.setFilepath(filepath);
+		shareBean.setType(type);
+		shareBean.setFilelength(length);
+		shareBean.setHttp(urlpath);
+		shareBean.setData(dateToString);
+		if (type == 2) {
+			shareBean.setPwd(Code.getCode());
+		}
+		boolean b = shareService.saveShareFile(shareBean);
+		return new MessageBean(b, "",
+				new ShareBean(urlpath, shareBean.getPwd()));
+	}
+
+	/*
+	 * @RequestMapping("/share") public ModelAndView
+	 * sharefile(HttpServletRequest request, HttpServletResponse response,
+	 * String num,String path){ String url= "/main"; path =
+	 * UtilTools.converStr(path); ModelAndView view = new ModelAndView(url);
+	 * List<FileBean> list = new ArrayList<FileBean>(); Object unp =
+	 * shareService.getUsernameBynum(num); Object[] unplist = (Object[]) unp;
+	 * int userid =(int) unplist[3]; User user= userService.getUserByid(userid);
+	 * String username =user.getUsername(); String rpath=unplist[2].toString();
+	 * SwiftDFS swiftDFS=new SwiftDFS(); List
+	 * lis=swiftDFS.getShareFile(username, rpath);
+	 * 
+	 * view.addObject("list", lis); return view; }
+	 */
+
+	/**
+	 * 我的分享
+	 * 
+	 * @param request
+	 * @param response
+	 * @return
+	 */
+	@RequestMapping("/shareFile")
+	public ModelAndView shareFile(HttpServletRequest request,
+			HttpServletResponse response) {
+		String url = "myshare";
+		ModelAndView mv = new ModelAndView(url);
+		Integer id = getSessionUser(request).getId();
+		List<ShareBean> sharelist = shareService.queryShareInfoByUserId(id);
+		mv.addObject("sharelist", sharelist);
+		mv.addObject("type", 6);
+		return mv;
+	}
+
+	/**
+	 * 复制链接-->地址栏
+	 * 
+	 * @param request
+	 * @param response
+	 * @param num
+	 * @return
+	 */
+	@RequestMapping("/share")
+	public ModelAndView sharefile(HttpServletRequest request,
+			HttpServletResponse response, String num) {
+		String url = null;
+		String number = "";
+		ModelAndView view = new ModelAndView();
+		// List<FileBean> list = new ArrayList<FileBean>();
+		Object unp = shareService.getUsernameBynum(num);
+		if (unp == null) {
+			url = "/shareinput";
+			number = "-1";
+			view.addObject("num", number);
+			view.setViewName(url);
+			return view;
+		} else {
+			Object[] unplist = (Object[]) unp;
+			int userid = (int) unplist[3];
+			String pwd = (String) unplist[5];
+
+			if (pwd != null) {
+				url = "/shareinput";
+				number = num;
+			} else {
+				url = "/main";
+				number = num;
+			}
+			User user = userService.getUserByid(userid);
+			String username = user.getUsername();
+			String rpath = unplist[2].toString();
+			SwiftDFS swiftDFS = new SwiftDFS();
+			List lis = swiftDFS.getShareFile(username, rpath);
+			view.setViewName(url);
+			view.addObject("list", lis);
+			view.addObject("num", number);
+			return view;
+		}
+	}
+
+	/*
+	 * 取消分享
+	 */
+	@RequestMapping("/cancelshare")
+	@ResponseBody
+	public Object cancelShare(HttpServletRequest request,
+			HttpServletResponse response, int id) {
+		boolean b = shareService.cancelShare(id);
+
+		return new MessageBean(b, b ? "取消成功！" : "服务器出现异常，请联系管理员！");
+	}
+
+	@RequestMapping("/shareinput")
+	public ModelAndView shareinput(HttpServletRequest request,
+			HttpServletResponse response, @RequestBody String num,
+			@RequestBody String secruit) {
+		Object unp = shareService.getUsernameBynum(num);
+		Object[] unplist = (Object[]) unp;
+		int userid = (int) unplist[3];
+		String pwd = (String) unplist[5];
+		ModelAndView view = new ModelAndView();
+		if (pwd == secruit) {
+			User user = userService.getUserByid(userid);
+			String username = user.getUsername();
+			String rpath = unplist[2].toString();
+			SwiftDFS swiftDFS = new SwiftDFS();
+			List lis = swiftDFS.getShareFile(username, rpath);
+			view.setViewName("/main");
+			view.addObject("list", lis);
+		} else {
+			view.setViewName("/main");
+			view.addObject("num", num);
+			view.addObject("msg", "<font color='red'>验证错误！！</font>");
+		}
+		return view;
+	}
+
+	@RequestMapping("/touserlist")
+	public ModelAndView touserlist(HttpServletRequest request,
+			HttpServletResponse response, int id) {
+		User user = getSessionUser(request);
+		List<Object[]> groupMember = groupService.findGroupMember(id);
+		ArrayList lists = new ArrayList();
+		for (Object[] obj : groupMember) {
+			User user1 = new User();
+
+			user1.setId(Integer.parseInt(obj[1].toString()));
+			user1.setUsername(obj[0].toString());
+			lists.add(user1);
+		}
+		List<User> list = userService.getAll();
+		String url = "/userlist";
+		ModelAndView view = new ModelAndView(url);
+		view.addObject("list", list);
+		view.addObject("groupid", id);
+		view.addObject("groupMember", lists);
+		return view;
+	}
+
+	@RequestMapping("/togroup")
+	public ModelAndView togroup(HttpServletRequest request,
+			HttpServletResponse response) {
+		User user = getSessionUser(request);
+		int userid = user.getId();
+		List<Object> groupid = groupService.findGroupByUserId(userid);
+		List list = groupService.getGroup(userid);
+		String url = "/group";
+		ModelAndView view = new ModelAndView(url);
+		view.addObject("list", list);
+		return view;
+	}
+
+	@RequestMapping("/getgroupById")
+	public ModelAndView getGroupById(HttpServletRequest request,
+			HttpServletResponse response, int id) {
+		User user = getSessionUser(request);
+		List group = groupService.getGroupById(id);
+		String path = Constants.RESOURCE_FILE + Constants.GROUP_FILE + "/" + id;
+		List list = storageService.getAllStoredList(path, user.getUsername());
+		String url = "/groupfile";
+		ModelAndView view = new ModelAndView(url);
+		view.addObject("id", id);
+		view.addObject("path", path);
+		view.addObject("group", group);
+		view.addObject("list", list);
+		return view;
+	}
+
+	@RequestMapping("/addGroup")
+	@ResponseBody
+	public Object addGroup(HttpServletRequest request,
+			HttpServletResponse response, String name) {
+		User user = getSessionUser(request);
+		groupService.addGroup(user.getId(), name,
+				DateUtil.DateToString("yyyy-MM-dd HH:mm:ss", new Date()));
+		return true;
+	}
+
+	@RequestMapping("/joinGroup")
+	@ResponseBody
+	public Object joinGroup(HttpServletRequest request,
+			HttpServletResponse response, int groupid, int usersid) {
+		groupService.joinGroup(groupid, usersid);
+		return true;
+	}
+
+}

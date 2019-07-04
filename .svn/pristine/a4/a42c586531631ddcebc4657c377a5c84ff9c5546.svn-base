@@ -1,0 +1,424 @@
+<%@ page language="java" import="java.util.*" pageEncoding="utf-8"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+<%
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path + "/";
+%>
+
+<!DOCTYPE html>
+<!--[if IE 7]><html class="ie7 lte9 lte8 lte7" lang="zh-cn"><![endif]-->
+<!--[if IE 8]><html class="ie8 lte9 lte8" lang="zh-cn"><![endif]-->
+<!--[if IE 9]><html class="ie9 lte9" lang="zh-cn"><![endif]-->
+<!--[if gt IE 9]><!-->
+<html lang="zh-cn">
+<!--<![endif]-->
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="">
+<meta name="author" content="">
+<title>先电云存储</title>
+<!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+<link href="assets/stylesheets/bootstrap.min.css" media="all" rel="stylesheet"
+	type="text/css" />
+<link href="assets/stylesheets/style.css" media="all" rel="stylesheet" type="text/css" />
+<link href="assets/stylesheets/disk.css" media="all" rel="stylesheet" type="text/css" />
+<link href="assets/stylesheets/font-awesome.css" media="all" rel="stylesheet"
+	type="text/css" />
+<link rel="stylesheet" href="assets/stylesheets/zTreeStyle.css" type="text/css">
+<style type="text/css">
+</style>
+
+</head>
+<body>
+
+	<div class="topbar" style="z-index: 1;">
+		<div class="content">
+			<div class="top_left">
+				<a href="javascript:void(0)" class="topbar_menu title"
+					draggable="false"><i class="fa fa-cloud"></i>Cloud</a> <a
+					class="topbar_menu this" target="_self" draggable="false"><i
+					class="font-icon menu-explorer"></i>文件管理</a>
+			</div>
+			<div class="top_right">
+				<div class="menu_group">
+					<a href="#" id="topbar_user" data-toggle="dropdown"
+						class="topbar_menu" draggable="false"><i
+						class="font-icon icon-user"></i>${USER_CONTEXT.username}&nbsp;<b
+						class="caret"></b></a>
+					<ul
+						class="dropdown-menu menu-topbar_user pull-right animated menuShow"
+						role="menu" aria-labelledby="topbar_user">
+						<li><a href="grxx.action" draggable="false"><i
+								class="font-icon fa fa-sign-out"></i>个人信息</a></li>
+						<li><a href="logout.action" draggable="false"><i
+								class="font-icon fa fa-sign-out"></i>退出</a></li>
+					</ul>
+				</div>
+			</div>
+			<div style="clear: both"></div>
+		</div>
+	</div>
+	<div class="frame-header">
+		<div class="header-content">
+			<div class="header-left">
+				<div class="btn-group btn-group-sm">
+					<button onclick="javascript:history.go(-1);"
+						class="btn btn-default" id="history_back" title="后退" type="button">
+						<i class="font-icon fa fa-arrow-left"></i>
+					</button>
+					<button onclick="javascript:history.go(1);" class="btn btn-default"
+						id="history_next" title="前进" type="button">
+						<i class="font-icon fa fa-arrow-right"></i>
+					</button>
+					<button onclick="javascript:location.reload();"
+						class="btn btn-default" id="refresh" title="强制刷新" type="button">
+						<i class="font-icon fa fa-refresh"></i>
+					</button>
+				</div>
+			</div>
+			<!-- /header left -->
+
+			<div class="header-middle">
+				<a href="home.action">
+					<button class="btn btn-default" id="home" title="我的文档">
+						<i class="font-icon fa fa-home"></i>
+					</button>
+				</a>
+
+				<div id="yarnball" title="点击进入编辑状态" style="display: block;">
+					<ul id="mytype" class="yarnball" style="left: 3px; width: 859px;">
+						<li class="yarnlet first"><a title="" href="home.action"
+							style="z-index: 2;"> <span class="left-yarn"></span> <span
+								class="address_ico groupSelf"></span> <span class="title_name"
+								style="top: -2px; position: relative;">全部</span>
+						</a></li>
+						<div id="type"></div>
+						<li class="yarnlet "><a title="" href="garbage.action"
+							style="z-index: 1;"><span class="title_name">垃圾箱</span></a></li>
+
+					</ul>
+				</div>
+				<div id="yarnball_input" style="display: none;">
+					<input type="text" name="path" value="" class="path" id="path">
+				</div>
+			</div>
+			<div class="header-right">
+				<input type="text" name="seach" id="navbarInput-01"> <a
+					class="btn btn-default" id="searchfiles" title="搜索" type="button"
+					onclick="searchfile()"> <i class="font-icon fa fa-search"></i>
+				</a>
+			</div>
+		</div>
+	</div>
+
+	<%-- <jsp:include page="common/header.jsp"></jsp:include> --%>
+	<div class="container-fluid">
+		<div class="row">
+			<%-- <jsp:include page="common/left.jsp"></jsp:include> --%>
+
+			<div class="main-left" style="z-index: 1;">
+				<div class="main-left" style="z-index: 1;">
+					<div class="list-group category" style="margin: 10px;">
+						<a class="list-group-item " id="r_active" href="home.action"><span
+							class="glyphicon glyphicon-home left-icon"></span>&nbsp;&nbsp;全部文件</a>
+						<a class="list-group-item " href="category.action?type=2"><span
+							class="glyphicon glyphicon-file left-icon"> </span>&nbsp;&nbsp;我的文档</a>
+						<a class="list-group-item " href="category.action?type=1"><span
+							class="glyphicon glyphicon-picture left-icon"></span>&nbsp;&nbsp;我的图片</a>
+						<a class="list-group-item " href="category.action?type=3"><span
+							class="glyphicon glyphicon-film left-icon"></span>&nbsp;&nbsp;我的视频</a>
+						<a class="list-group-item " href="category.action?type=4"><span
+							class="glyphicon glyphicon-music left-icon"></span>&nbsp;&nbsp;我的音乐</a>
+						<a class="list-group-item" href="category.action?type=5"><span
+							class="glyphicon glyphicon-inbox left-icon"></span>&nbsp;&nbsp;其他</a>
+						<!-- <a class="list-group-item" id="type" href="shareFile.action"
+							onclick="gettype(href)"><span
+							class="glyphicon glyphicon-share left-icon"></span>&nbsp;&nbsp;我的分享</a> -->
+
+						<a class="list-group-item active" href="garbage.action"><span
+							class="glyphicon glyphicon-trash left-icon"></span>&nbsp;&nbsp;垃圾箱</a>
+					</div>
+					<div class="main-left-use">
+
+						<div class="progress progress-u progress-xs">
+							<div class="progress-bar progress-bar-blue" id="progress-bar"
+								role="progressbar" aria-valuemin="0" aria-valuemax="100"
+								style=""></div>
+						</div>
+						<h3 class="heading-xs" style="font-size: 10px; padding: 0 10px">
+							容量：<span class="" id="totle"></span><span
+								class="capacity pull-right"><a href="javascript:void(0)">扩容</a></span>
+						</h3>
+
+					</div>
+				</div>
+			</div>
+
+
+
+			<div
+				class="leftclose main col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2">
+				<div class="main-right"
+					style="left: 199px; position: fixed; top: 89px; right: 0; bottom: 32px; overflow: auto;">
+					<div class="col-md-12">
+						<!-- <a href="javascript:void(0);" class="toggle-nav" id="toggle-left"><i
+							class="fa fa-bars"></i></a>
+						<h7> <b>回收站</b></h7>
+ -->
+						<div class="col-md-12" style="padding: 0">
+							<div class="tools">
+								<div class="tools-left">
+									<!-- 文件功能 -->
+									<div class="btn-group btn-group-sm kod_path_tool fl-left">
+										<div id="result-uploader" class="right upload-filemain fl"
+											style="float: left"></div>
+										<button class="btn btn-default" type="button"
+											onclick="deleteallgarbagefile();">
+											<i class="font-icon fa  fa-folder-open-o" style="color: #888"></i>清空回收站
+										</button>
+										<button class="btn btn-default" type="button"
+											onclick="regarbagefile();" id="renew">
+											<i class="font-icon fa  fa-folder-open-o" style="color: #888"></i>还原文件
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+
+
+
+						<!-- <div class="garbage-border">
+							<div class="garbage-title">
+								<div class="recycle-button">
+									<button class='btn btn-primary'
+										onclick="deleteallgarbagefile();">
+										<span class="glyphicon glyphicon-folder-open"></span>&nbsp;清空回收站
+									</button>
+								</div>
+								<div class="restore-button">
+									<button class='btn btn-primary' onclick="regarbagefile()"
+										id="renew">
+										<span class="glyphicon glyphicon-random"></span> 还原文件
+									</button>
+								</div>
+							</div>
+						</div> -->
+						<!-- <div class="table-responsive">
+							<div class="col-md-12 tableth"> -->
+						<div class="col-md-12" style="padding: 0; top: 40px">
+							<div class=" panel-col lesson-manage-panel"
+								style="min-height: 700px; border: 0px solid transparent;">
+								<div class="col-md-12 tableth">
+									<table class="table mb-0">
+										<thead>
+											<tr>
+												<th class="table-checkbox"
+													style="position: relative; left: 13px;"><label
+													class="checkbox checkbox-position" style="min-height: 0"
+													for="checkbox1"> <span class="icons icon-span">
+															<span class="first-icon fui-checkbox-unchecked"></span> <span
+															class="second-icon fui-checkbox-checked"></span>
+													</span> <input name="chkAll" type="checkbox" id="operAll"
+														onClick="getAll()" value="checkbox" class="main-check">
+												</label></th>
+												<!-- <tr>
+										<th class="table-checkbox"><label
+											class="checkbox checkbox-position" for="checkbox1"> <span
+												class="icons icon-span"> <span
+													class="first-icon fui-checkbox-unchecked"></span> <span
+													class="second-icon fui-checkbox-checked"></span></span> <input
+												name="chkAll" type="checkbox" id="operAll"
+												onClick="getAll()" value="checkbox">
+										</label></th> -->
+												<!-- <th class="file-name">文件名</th>
+										<th class="file-position">文件位置</th>
+										<th class="file-size">大小</th>
+										<th class="change-date">修改日期</th> -->
+												<th class="mainfile-name">文件名</th>
+												<th class="hide table-fileposition mainfile-position">文件位置</th>
+												<th class="mainfile-size">大小</th>
+												<!-- <th class="mainfile-size" id="share_th">分享</th> -->
+												<th class="mainchange-date">修改日期</th>
+											</tr>
+										</thead>
+										<tbody id="tab">
+											<c:forEach var="fb" items="${list}">
+												<tr>
+													<td style="top: -6px; position: relative; left: 13px;"><label
+														class="checkbox table-checkboxposition" for="checkbox1">
+															<span class="icons main-icons"> <span
+																class="first-icon fui-checkbox-unchecked"></span> <span
+																class="second-icon fui-checkbox-checked"></span>
+														</span> <input type="checkbox" name='check' class="main-tabinput"
+															onclick="show()">
+													</label></td>
+													<!-- <td><label class="checkbox table-checkboxposition"
+												for="checkbox1"> <span class="icons main-icons">
+														<span class="first-icon fui-checkbox-unchecked"></span> <span
+														class="second-icon fui-checkbox-checked"></span>
+												</span> <input type="checkbox" name='check' class="main-tabinput"
+													onclick="show()">
+											</label></td> -->
+													<td><span style="display: block"><c:if
+																test="${fb.isdirectory == true}">
+																<img src="assets/images/0.png" class="objimg">
+																<a href="javascript:void(0);"><input name="objimg"
+																	type="text" style="display: none" value="${fb.name}">
+															</c:if><span>${fb.name}</span> <c:if
+																test="${fb.isdirectory == true}">
+																</a>
+															</c:if></span>
+														<div class="edit-name" style="display: none;">
+															<input class="box" type="text" value="${fb.name}">
+															<a class="sure" href="javascript:void(0);"
+																onclick="sure()"><span
+																class="glyphicon glyphicon-ok"></span></a> <a
+																class="cancel ml-10" onclick="cancel()"
+																href="javascript:void(0);"><span
+																class="glyphicon glyphicon-remove"></span></a>
+														</div></td>
+													<td class="table-path hide ta">${fb.path}</td>
+													<td>${fb.length}</td>
+													<td>${fb.lastmodified }</td>
+												</tr>
+											</c:forEach>
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!--  购买容量    -->
+	<jsp:include page="common/buystore.jsp"></jsp:include>
+	<!-- JavaScript-->
+	<script src="assets/javascripts/jquery.min.js"></script>
+	<script src="assets/javascripts/bootstrap.min.js"></script>
+	<script src="assets/javascripts/checkbox.js"></script>
+	<script src="assets/javascripts/fineuploader.js"></script>
+	<script src="assets/javascripts/common.js"></script>
+	<script type="text/javascript">
+		$(document)
+				.ready(
+						function() {
+							$("#toggle-left")
+									.click(
+											function() {
+												if ($(".leftclose").hasClass(
+														"col-md-offset-2")) {
+													$("#leftshow").animate({
+														left : '-700px'
+													}, "15")
+													$(".leftclose")
+															.removeClass(
+																	"col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 ");
+												} else {
+													$(".leftclose")
+															.addClass(
+																	"col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 ");
+													$("#leftshow").animate({
+														left : '0px'
+													})
+												}
+											});
+						});
+
+		//导航选中效果
+		$(".nav li a").each(function() {
+			$this = $(this);
+			if ($this[0].href == String(window.location)) {
+				$this.parent().addClass("active");
+			}
+		});
+		//全选
+		function getAll() {
+			var tit = document.getElementById("operAll");
+			var inputs = document.getElementsByName("check");
+			for (var i = 0; i < inputs.length; i++) {
+				if (inputs[i].type == "checkbox") {
+					if (tit.checked == true) {
+						inputs[i].checked = true;
+					} else {
+						inputs[i].checked = false;
+
+					}
+				}
+			}
+		}
+		//还原功能
+		function regarbagefile() {
+			if (confirm("你确定要还原所选文件吗？")) {
+				var objTable = document.getElementById("tab");
+				var data = '[';
+				for (var y = 0; y < objTable.rows.length; y++) {
+					var checkbox = objTable.rows[y].childNodes[1].childNodes[0].childNodes[5];
+					if (checkbox.checked == true) {
+						var checkselect = checkbox;
+						var filepaths = checkselect.parentNode.parentNode.parentNode.childNodes
+						var path = filepaths[7].innerHTML;
+						path = decodeURIComponent(path);
+						var td3 = filepaths[5];
+						var imgpic = td3.getElementsByTagName("img");
+						if (imgpic.length > 0) {
+							isDir = true;
+							var filename = td3.childNodes[0].childNodes[1].childNodes[0];
+							var name = $(filename).val();
+						} else {
+							isDir = false;
+							var filename = td3.childNodes[0].childNodes[0]
+							var name = $(filename).text();
+						}
+
+						data += '{"path":"' + path + '","name":"' + name
+								+ '","isDir":"' + isDir + '"}';
+						if (y < (objTable.rows.length - 1)) {
+							data += ',';
+						}
+					}
+				}
+				data += ']';
+
+				var data = eval('(' + data + ')');
+				$.ajax({
+					url : "backfiles.action",
+					type : "post",
+					contentType : "application/json; charset=utf-8",
+					data : JSON.stringify(data),
+					success : function(s) {
+						if (s.success) {
+							alert("还原成功");
+						} else {
+							alert("还原失败");
+						}
+						location.reload();
+					}
+				});
+
+			}
+		}
+
+		//清空功能
+		function deleteallgarbagefile() {
+			if (confirm("你确定要彻底删除所选文件吗？")) {
+				$.ajax({
+					url : "deleteallgarbagefile.action",
+					type : "post",
+					success : function(s) {
+						location.reload();
+					}
+				});
+			}
+		}
+	</script>
+</body>
+</html>

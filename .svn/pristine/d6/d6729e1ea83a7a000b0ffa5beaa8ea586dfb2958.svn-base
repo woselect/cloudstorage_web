@@ -1,0 +1,151 @@
+<%@ page language="java" contentType="text/html; charset=utf-8"
+    pageEncoding="utf-8"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<meta charset="utf-8">
+		<title>Word Cloud</title>
+		<style>
+			body {
+				position: relative;
+				font-family: "Helvetica Neue", sans-serif;
+				width: 960px;
+				margin: auto;
+				margin-bottom: 1em;
+				margin-top: 20px;
+			}
+			
+			#presets a {
+				border-left: solid #666 1px;
+				padding: 0 10px;
+			}
+			
+			#presets a.first {
+				border-left: none;
+			}
+			
+			#keyword {
+				width: 300px;
+			}
+			
+			#fetcher {
+				width: 500px;
+			}
+			
+			#keyword,
+			#go {
+				font-size: 1.5em;
+			}
+			
+			#text {
+				width: 100%;
+				height: 100px;
+			}
+			
+			p.copy {
+				font-size: small;
+			}
+			
+			#form {
+				font-size: small;
+				position: relative;
+			}
+			
+			hr {
+				border: none;
+				border-bottom: solid #ccc 1px;
+			}
+			
+			a.active {
+				text-decoration: none;
+				color: #000;
+				font-weight: bold;
+				cursor: text;
+			}
+			
+			#angles line,
+			#angles path,
+			#angles circle {
+				stroke: #666;
+			}
+			
+			#angles text {
+				fill: #333;
+			}
+			
+			#angles path.drag {
+				fill: #666;
+				cursor: move;
+			}
+			
+			#angles {
+				text-align: center;
+				margin: 0 auto;
+				width: 350px;
+			}
+			
+			#angles input,
+			#max {
+				width: 42px;
+			}
+		</style>
+
+		
+	</head>
+
+	<body>
+		<div id="vis" style="margin: 0 auto;position: fixed;top: 35%; right: 40%;" ><img src="assets/images/analysis.gif" /></div>
+		<script src="assets/javascripts/jquery.min.js"></script>
+		<script src="assets/javascripts/d3.min.js"></script>
+		<script src="assets/javascripts/d3.layout.cloud.js"></script>
+		<script>
+ 
+ var data1={type:1};
+ $.ajax({
+	url : "loaddata.action",
+	type:"post",
+	data1:"data1",
+	success: function(s){
+		    var data=s.other;
+		    $("#vis").html("")
+		    var fill = d3.scale.category20();	//用20种颜色构建一个序数变换
+		    var layout=d3.layout.cloud()	//初始化一个云图对象
+		    .size([1500, 1500])	//设置整个布局的宽和高
+		    .words(data)	//设置json数据
+		    .padding(5)	//设置单词之间的间隔
+		    .rotate(function() { return ~~(Math.random() * 2) * 90; })	//设置旋转，利用正态分布产生一个随机数
+		    .font("Impact")	//设置字体
+		    .fontSize(function(d) { 
+		    	return Math.sqrt(d.size);	//设置字体大小为传过来size值得平方根
+		    	 }
+		    )
+		    .on("end", draw);	//添加事件监听器
+		layout.start();	//开始或重新开始绘图
+
+		function draw(words) {
+			  d3.select("body").append("svg")	//从当前文档中选择一系列元素
+			      .attr("width", layout.size()[0])
+			      .attr("height", layout.size()[1])
+			    .append("g")
+			      .attr("transform", "translate(" + layout.size()[0] / 2 + "," + layout.size()[1] / 2 + ")")
+			    .selectAll("text")	//从当前文档中选择多项元素
+			      .data(words)
+			    .enter().append("text")
+			      .style("font-size", function(d) { return d.size + "px"; })	//style优先级高于attr
+			      .style("font-family", "Impact")
+			      .style("fill", function(d, i) { return fill(i); })
+			      .attr("text-anchor", "middle")
+			      .attr("transform", function(d) {
+			        return "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")";
+			      })
+			      .text(function(d) { return d.text; });
+			}
+	 }
+})
+
+		</script>
+	</body>
+
+</html>

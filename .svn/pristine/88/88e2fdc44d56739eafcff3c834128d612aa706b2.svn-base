@@ -1,0 +1,124 @@
+<%@ page language="java" import="java.util.*" pageEncoding="utf-8"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+<%
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path + "/";
+%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="">
+<meta name="author" content="">
+<title>先电云存储</title>
+<link href="assets/stylesheets/bootstrap.min.css" media="all" rel="stylesheet"
+	type="text/css" />
+<link href="assets/stylesheets/style.css" media="all" rel="stylesheet" type="text/css" />
+<link href="assets/stylesheets/disk.css" media="all" rel="stylesheet" type="text/css" />
+<link href="assets/stylesheets/font-awesome.css" media="all" rel="stylesheet"
+	type="text/css" />
+<link rel="stylesheet" href="assets/stylesheets/zTreeStyle.css" type="text/css">
+<style>
+.bg-img {
+	position: absolute;
+	top: 49px;
+	z-index: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: url(assets/images/7.jpg)
+}
+
+.head-top {
+	height: 49px;
+	background: #252525;
+	border-bottom: 0;
+	position: relative;
+	padding: 0;
+	box-shadow: 0 0 5px #333;
+	color: #fff
+}
+</style>
+
+</head>
+<body class="course-dashboard-page">
+	<div class="head-top"></div>
+	<div class="bg-img"></div>
+	<div id="content-container" class="container" style="margin-top:80px">
+		<div class="row row-6">
+			<div class="col-md-4 col-md-offset-4" >
+				<div class="panel panel-default panel-page" style="background-color: rgba(255,255,255,0.9);min-height:200px;padding: 45px 50px 37px;">
+					<!--  <div class="panel-heading">
+						<h2 style="font-size:22px">请输入提取密码</h2>
+					</div> -->
+					<form id="login-form" class="form-vertical" method="post" novalidate="novalidate" data-widget-cid="widget-0">
+						
+						<c:choose>
+						<c:when test="${num == -1 }">
+					
+							<label class="control-label" for="password">抱歉！！链接已失效或者资源不存在。。。。。。</label>
+						</c:when>
+						<c:otherwise>
+
+							<div class="form-group">
+								<label class="control-label" for="password">请输入提取密码</label>
+								<label class="control-label" ><c:if test="${not empty msg}" >${msg}</c:if></label>
+								<div class="controls">
+									<input class="form-control" id="password" type="password" name="_password" required=""
+										data-widget-cid="widget-2" data-explain="">
+									<div class="help-block" style="display:none;"></div>
+								</div>
+							</div>
+							<div class="form-group">
+								<div class="controls">
+									<!-- <span class="checkbox mtm pull-right"> <label> <input type="checkbox" name="_remember_me"
+											checked="checked"> 记住密码
+									</label>
+									</span> -->
+									<button style="width:100%" class="btn btn-fat btn-primary btn-large" onclick="login();return false;">提取</button>
+								</div>
+							</div>
+							</c:otherwise>
+					
+						</c:choose>
+					</form>
+					<div class="ptl">
+						<!-- <a href="/password/reset">找回密码</a> <span class="text-muted mhs">|</span>  <span class="text-muted">还没有注册帐号？</span>
+						<a href="${request.contextPath}/course/toregeister">立即注册</a>-->
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<!--  JavaScript-->
+	<script src="assets/javascripts/jquery.min.js"></script>
+	<script src="assets/javascripts/bootstrap.min.js"></script>
+	<script src="assets/javascripts/fineuploader.js"></script>
+	<script src="assets/javascripts/checkbox.js"></script>
+	<script src="assets/javascripts/common.js"></script>
+	<script type="text/javascript">
+	$(function() {
+		$('input').keypress(function(e) {
+			var key = e.which;
+			if (key == 13) {
+				login();
+			}
+		});
+	});
+
+	function login() {
+		var secruit = $("#password").val();
+		if(secruit==null||secruit==""){
+			alert("请输入验证码");
+			return false;
+		}
+		location.href="/shareinput.action/${num}/"+secruit;
+	}
+	</script>
+</body>
+</html>

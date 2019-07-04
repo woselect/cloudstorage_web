@@ -1,0 +1,37 @@
+/*
+ * Copyright (c) 2014, 2016, XIANDIAN and/or its affiliates. All rights reserved.
+ * XIANDIAN PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ *
+ */
+package com.xiandian.cloud.storage.sh;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+
+public class LogUtil {
+	
+	
+	public  void info(String string){
+		String root =this.getClass().getClassLoader().getResource("/").getPath().replace("WEB-INF/classes/", "log");
+		OutputStream out = null;
+		String path = root+"\\cloudstorage.log";
+		File file = new File(path);
+		try {
+		if(!file.exists()){
+			file.createNewFile();
+		}
+		out = new FileOutputStream(file,true);
+		String str =string.replace("\r\n", "");
+		str+="\r\n";
+		byte[] b = str.getBytes();
+		for(int i=0;i<b.length;i++){
+			out.write(b[i]);
+		}
+		out.close();
+		} catch (IOException e) {
+		 e.printStackTrace();
+		}
+	}
+}

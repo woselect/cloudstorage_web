@@ -1,0 +1,45 @@
+<%@ page language="java" contentType="text/html; charset=utf-8"
+    pageEncoding="utf-8"%>
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>bar</title>
+<style>
+p{
+    color:white;
+}
+</style>
+<body>
+<div id="vis" style="margin: 0 auto;position: fixed;top: 35%; right: 40%;" ><img src="assets/images/analysis.gif" /></div>
+ <link rel="stylesheet" href="assets/stylesheets/xcharts.min.css">
+ <script src="assets/javascripts/jquery.min.js"></script>
+<script src="assets/javascripts/d3.min.js"></script>
+<script src="assets/javascripts/xcharts.min.js"></script>
+<figure style="height: 500px" id="chart"></figure>
+
+<script>
+(function () {
+	var data2={type:2};
+	$.ajax({
+		url:'loaddata.action',
+		type:'post',
+		data:data2,
+		success:function(s){
+			var data = {
+					  "xScale": "ordinal",
+					  "yScale": "linear",
+					  "main": [
+					    {
+					      "className": ".pizza",
+					      "data": s.other
+					    }
+					  ]
+					};
+			 $("#vis").html("")
+					var myChart = new xChart('bar', data, '#chart');
+		}
+	});
+
+}());
+
+</script>
+</body>

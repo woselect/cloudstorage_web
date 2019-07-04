@@ -1,0 +1,646 @@
+<%@ page language="java" import="java.util.*" pageEncoding="utf-8"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn"%>
+
+<%
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path + "/";
+%>
+
+<!DOCTYPE html>
+<!--[if IE 7]><html class="ie7 lte9 lte8 lte7" lang="zh-cn"><![endif]-->
+<!--[if IE 8]><html class="ie8 lte9 lte8" lang="zh-cn"><![endif]-->
+<!--[if IE 9]><html class="ie9 lte9" lang="zh-cn"><![endif]-->
+<!--[if gt IE 9]><!-->
+<html lang="zh-cn">
+<!--<![endif]-->
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="">
+<meta name="author" content="">
+<title>先电云存储</title>
+<!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+<link href="assets/stylesheets/bootstrap.min.css" media="all" rel="stylesheet"
+	type="text/css" />
+<link href="assets/stylesheets/style.css" media="all" rel="stylesheet" type="text/css" />
+<link href="assets/stylesheets/disk.css" media="all" rel="stylesheet" type="text/css" />
+<link href="assets/stylesheets/font-awesome.css" media="all" rel="stylesheet"
+	type="text/css" />
+<link rel="stylesheet" href="assets/stylesheets/zTreeStyle.css" type="text/css">
+
+<style >
+	.gridview-img{
+		width: 70%
+	}
+	
+	.p_lean1{
+	top: 4px;
+	position: relative;
+	width: 86%;
+	float: left;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	}
+	
+	@media screen and (max-width:1367px){
+	.p_lean1{
+	top: 4px;
+	position: relative;
+	width: 80%;
+	float: left;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	}
+	}
+	
+</style>
+
+
+</head>
+<body class="line_height">
+
+	<jsp:include page="common/header.jsp"></jsp:include>
+	<div class="main">
+		<div class="main-left" style="z-index: 1;">
+			<div class="main-left" style="z-index: 1;">
+				<div class="list-group category" style="margin: 10px;">
+					<a class="list-group-item " id="r_active" href="home.action"><span
+						class="glyphicon glyphicon-home left-icon"></span>&nbsp;&nbsp;全部文件</a>
+					<a class="list-group-item " href="category.action?type=2"><span
+						class="glyphicon glyphicon-file left-icon"> </span>&nbsp;&nbsp;我的文档</a>
+					<a class="list-group-item " href="category.action?type=1"><span
+						class="glyphicon glyphicon-picture left-icon"></span>&nbsp;&nbsp;我的图片</a>
+					<a class="list-group-item " href="category.action?type=3"><span
+						class="glyphicon glyphicon-film left-icon"></span>&nbsp;&nbsp;我的视频</a>
+					<a class="list-group-item " href="category.action?type=4"><span
+						class="glyphicon glyphicon-music left-icon"></span>&nbsp;&nbsp;我的音乐</a>
+					<a class="list-group-item" href="category.action?type=5"><span
+						class="glyphicon glyphicon-inbox left-icon"></span>&nbsp;&nbsp;其他</a>
+					<!-- <a class="list-group-item" id="type" href="share.action"
+							onclick="gettype(href)"><span
+							class="glyphicon glyphicon-share left-icon"></span>&nbsp;&nbsp;我的分享</a> -->
+
+					<a class="list-group-item" href="garbage.action"><span
+						class="glyphicon glyphicon-trash left-icon"></span>&nbsp;&nbsp;垃圾箱</a>
+				</div>
+
+				<!-- <div class="container-fluid">
+		<div class="row">
+			<div class="col-sm-3 col-md-2 sidebar" id="leftshow">
+				<ul class="nav nav-sidebar mb-0" id="toggle">
+					<li class="active" id="r_active"><a href="gridview.action"><span class="menu-icons fa fa-home left-icon">
+					</span>&nbsp;&nbsp;全部文件</a></li>
+					<li class="category"><a href="categoryview.action?type=2"><span class="glyphicon glyphicon-file left-icon">
+					</span>&nbsp;&nbsp;我的文档</a></li>
+					<li class="category"><a href="categoryview.action?type=1"><span class="glyphicon glyphicon-picture left-icon">
+					</span>&nbsp;&nbsp;我的图片</a></li>
+					<li class="category"><a href="categoryview.action?type=3"><span class="glyphicon glyphicon-film left-icon">
+					</span>&nbsp;&nbsp;我的视频</a></li>
+					<li class="category"><a href="garbage.action"><span class="menu-icons fa fa-refresh left-icon">
+					</span>&nbsp;&nbsp;回收站</a></li>
+					<li class="left-line"></li>
+					<li class="category"><a href="grxx.action"><span class="glyphicon glyphicon-cog left-icon"></span>&nbsp;&nbsp;设置</a></li>
+					<li class="left-line"></li>
+				</ul>
+				<div class="mt-10">
+					<div class="my-capacity">我的容量:</div>
+					<div class="addmy-capacity">
+						<a href="javascript:void(0);" class="capacity">扩容</a>
+					</div>
+					<div class="progress">
+						<div class="progress-bar"></div>
+					</div>
+				</div>
+			</div> -->
+
+				<div class="main-right"
+					style="left: 199px; position: fixed; top: 89px; right: 0; bottom: 32px; overflow: auto;">
+					<!-- <div
+						class="main leftclose col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2"> -->
+					<div class="col-md-12 ">
+						<div class="row gridview-border">
+
+							<div class="tools">
+								<div class="tools-left">
+									<!-- 文件功能 -->
+									<div class="btn-group btn-group-sm kod_path_tool fl-left">
+										<div id="result-uploader" class="right upload-filemain fl"
+											style="float: left"></div>
+										<button class="btn btn-default" type="button"
+											onclick="newdir()" id="newdir">
+											<i class="font-icon fa  fa-folder-open-o" style="color: #888"></i>新建文件夹
+										</button>
+										<button class="btn btn-default" style="display: none;"
+											type="button" onclick="deletefile()" id="delete">
+											<i class="font-icon glyphicon glyphicon-trash"
+												style="color: #888"></i>删除
+										</button>
+										<a class="btn btn-default" type="button"
+											style="display: none;" onclick="downloadfile()"
+											href="javascript:void(0)" id="download"
+											style="background: #F6F6F6;"> <i
+											class="font-icon glyphicon glyphicon-download-alt"
+											style="color: #888"></i>下载
+										</a>
+
+									</div>
+
+
+									<div class="clearfix"></div>
+								</div>
+							</div>
+						</div>
+						<div class="col-md-12" style="top: 2px; z-index: 99999999;">
+							<div class="btn-toolbar  main-btnbar pull-right" style="position:fixed;right:21px;margin-top:1px">
+								<div class="btn-group" id="searchnone" style="display: block">
+									<a class="btn btn-default " href="home.action?path=${path}"
+										id="btn"><span class="glyphicon glyphicon-th-list"></span></a>
+									<a class="btn btn-default active"
+										href="gridview.action?path=${path}" id="btn1"><span
+										class="glyphicon glyphicon-th-large"></span></a>
+								</div>
+							</div>
+						</div>
+
+						<%-- <div class="button-listbox col-lg-12">
+									<div
+										class=" fileupload-buttonbar col-lg-10 col-md-10 col-sm-10 button-list">
+										<div id="result-uploader" class="right upload-file"></div>
+										<button class='btn btn-primary new-fider' onclick="newdir()">
+											<span class="glyphicon glyphicon-folder-open"></span>&nbsp;新建文件夹
+										</button>
+										<button class='btn btn-primary del-file'
+											onclick="deletefile()" id="delete">
+											<span class="glyphicon glyphicon-trash"><span>删除文件
+
+											
+										</button>
+										<a class='btn btn-primary download-file'
+											href="javascript:void(0);" onclick="downloadfile()"
+											id="download"> <span
+											class="glyphicon glyphicon-download-alt"><span>下载文件</a>
+									</div>
+									<div class="btn-toolbar left-buttonlist">
+										<div class="btn-group">
+											<a class="btn btn-primary " href="home.action?path=${path}"
+												id="btn"><span class="glyphicon glyphicon-th-list"></span></a>
+											<a class="btn btn-primary active"
+												href="gridview.action?path=${path}" id="btn1"><span
+												class="glyphicon glyphicon-th-large"></span></a>
+										</div>
+									</div>
+								</div> --%>
+
+					</div>
+					<div class="col-md-12" style="padding-top: 50px">
+						<div class=" gridview-main">
+							<div class="gridview-path">
+								<!--  <a class="fl" href="gridview.action?path=">&laquo;全部文件 | </a>  -->
+								<div class="mydiv fl">
+									<input type="hidden" class="dis-none" name="mydiv1"
+										value="${path}">
+								</div>
+							</div>
+							<div class="row">
+								<c:forEach var="fb" items="${list}" varStatus="status">
+									<div
+										class=" col-lg-1 col-md-1 col-sm-2 col-xs-12 gridview-imgbox">
+										<!-- <div class="zzsc"> -->
+										<c:choose>
+											<c:when test="${fb.isdirectory == true}">
+												<a href="gridview.action?path=${fb.path}"><img
+													src="assets/images/2.png" alt="No image" class="gridview-img"></a>
+											</c:when>
+											<c:when test="${fn:endsWith(fb.name, '.doc')}">
+												<img src="assets/images/doc.jpg" alt="NO image"
+													class="gridview-img">
+											</c:when>
+											<c:when test="${fn:endsWith(fb.name, '.docx')}">
+												<img src="assets/images/doc.jpg" alt="NO image"
+													class="gridview-img">
+											</c:when>
+											<c:when test="${fn:endsWith(fb.name, '.ppt')}">
+												<img src="assets/images/ppt.jpg" alt="NO image"
+													class="gridview-img">
+											</c:when>
+											<c:when test="${fn:endsWith(fb.name, '.ppt')}">
+												<img src="assets/images/ppt.jpg" alt="NO image"
+													class="gridview-img">
+											</c:when>
+											<c:when test="${fn:endsWith(fb.name, '.xls')}">
+												<img src="assets/images/Excel.png" alt="NO image"
+													class="gridview-img">
+											</c:when>
+											<c:when test="${fn:endsWith(fb.name, '.xlsx')}">
+												<img src="assets/images/Excel.png" alt="NO image"
+													class="gridview-img">
+											</c:when>
+											<c:when test="${fn:endsWith(fb.name, '.txt')}">
+												<img src="assets/images/txt.jpg" alt="NO image"
+													class="gridview-img">
+											</c:when>
+											<c:when test="${fn:endsWith(fb.name, '.pdf')}">
+												<img src="assets/images/pdf.png" alt="NO image"
+													class="gridview-img">
+											</c:when>
+											<c:when test="${fn:endsWith(fb.name, '.xml')}">
+												<img src="assets/images/xml.jpg" alt="NO image"
+													class="gridview-img">
+											</c:when>
+											<c:when test="${fn:endsWith(fb.name, '.avi')}">
+												<img src="assets/images/video.jpg" alt="NO image"
+													class="gridview-img">
+											</c:when>
+											<c:when test="${fn:endsWith(fb.name, '.wmv')}">
+												<img src="assets/images/video.jpg" alt="NO image"
+													class="gridview-img">
+											</c:when>
+											<c:when test="${fn:endsWith(fb.name, '.rmvb')}">
+												<img src="assets/images/video.jpg" alt="NO image"
+													class="gridview-img">
+											</c:when>
+											<c:when test="${fn:endsWith(fb.name, '.rm')}">
+												<img src="assets/images/video.jpg" alt="NO image"
+													class="gridview-img">
+											</c:when>
+											<c:when test="${fn:endsWith(fb.name, '.mp4')}">
+												<img src="assets/images/video.jpg" alt="NO image"
+													class="gridview-img">
+											</c:when>
+											<c:when test="${fn:endsWith(fb.name, '.mpg')}">
+												<img src="assets/images/video.jpg" alt="NO image"
+													class="gridview-img">
+											</c:when>
+											<c:when test="${fn:endsWith(fb.name, '.mkv')}">
+												<img src="assets/images/video.jpg" alt="NO image"
+													class="gridview-img">
+											</c:when>
+											<c:when test="${fn:endsWith(fb.name, '.swf')}">
+												<img src="assets/images/video.jpg" alt="NO image"
+													class="gridview-img">
+											</c:when>
+											<c:when test="${fn:endsWith(fb.name, '.flv')}">
+												<img src="assets/images/video.jpg" alt="NO image"
+													class="gridview-img">
+											</c:when>
+											<c:when test="${fn:endsWith(fb.name, '.asf')}">
+												<img src="assets/images/video.jpg" alt="NO image"
+													class="gridview-img">
+											</c:when>
+											<c:when test="${fn:endsWith(fb.name, '.mov')}">
+												<img src="assets/images/video.jpg" alt="NO image"
+													class="gridview-img">
+											</c:when>
+											<c:otherwise>
+												<img src="${fb.filepath}" alt="NO image"
+													class="img-thumbnail" id="img${status.count}">
+											</c:otherwise>
+										</c:choose>
+										<div class="text">
+											<div class="content">
+												<div style="display: none">${fb.filepath}</div>
+												<div style="display: none">${fb.path}</div>
+												<p class="p_len">
+													<input type="checkbox" class="checkbox gridview-checkbox"
+														name="check" onclick="show()" id="input${status.count}"
+														value="${fb.name}" style="float:left"/><span class="p_lean1" ></span>
+												</p>
+											</div>
+											<!-- </div> -->
+										</div>
+									</div>
+								</c:forEach>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+
+	<!-- 	</div>
+	</div> -->
+	<!--  购买容量    -->
+	<jsp:include page="common/buystore.jsp"></jsp:include>
+	<!--  javascript -->
+	<script src="assets/javascripts/jquery.min.js"></script>
+	<script src="assets/javascripts/bootstrap.min.js"></script>
+	<script src="assets/javascripts/fineuploader.js"></script>
+	<script src="assets/javascripts/common.js"></script>
+	<script type="text/javascript">
+		$(document).ready(
+			function() {
+				Split();
+				cut();
+				$("#toggle-left").click(
+					function() {
+						if ($(".leftclose").hasClass(
+								"col-md-offset-2")) {
+							$("#leftshow").animate({
+								left : '-700px'
+							}, "15");
+							$(".leftclose")
+									.removeClass(
+											"col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 ");
+							$(".text").css("width",
+									"81%");
+						} else {
+							$(".leftclose")
+									.addClass(
+											"col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 ");
+							$("#leftshow").animate({
+								left : '0px'
+							});
+							$(".text").css("width",
+									"79%");
+						}
+					});
+
+					$("#btn1").click(function() {
+						$("#btn").removeClass("active");
+						$(this).addClass("active");
+					});
+					$("#btn").click(function() {
+						$("#btn1").removeClass("active");
+						$(this).addClass("active");
+					});
+				});
+
+		//字符串截取 
+		function cut() {
+			var alltext = $(".p_len");
+			for (var i = 0; i < alltext.length; i++) {
+				var cur_text = alltext[i].childNodes[1]
+				var text = $(cur_text).val()
+				if (text.length > 10) {
+					var p_text1 = text.substr(0, 10);
+					var span_content = alltext[i].childNodes[2];
+					$(span_content).text(p_text1 + "...");
+				} else {
+					var span_content = alltext[i].childNodes[2];
+					$(span_content).text(text);
+				}
+			}
+
+		}
+
+		//路径显示	
+		function Split() {
+			var currentpath = $("input[name='mydiv1']").val();
+			var splitpath = currentpath.split("/");
+			splitpath = "${path}".split("/");
+			var newpath = "";
+			for (var i = 0; i < splitpath.length - 1; i++) {
+				var tmp = '<a href="gridview.action?path=' + newpath
+						+ splitpath[i]
+						+ '/" class="f" style="margin-left:5px">'
+						+ splitpath[i] + '/</a>';
+				newpath += splitpath[i] + '/';
+				$(".mydiv").append(tmp);
+
+			}
+		}
+
+		$(".nav .category  a").each(function() {
+			$this = $(this);
+			if ($this[0].href == String(window.location)) {
+				$("#r_active").removeClass("active");
+				$(".ta").removeClass("hide");
+				$(".ta").removeClass("hide");
+				var vhref = String(window.location.search);
+				$("#btn").attr("href", "category.action" + vhref);
+				$("#btn1").attr("href", "categoryview.action" + vhref);
+				$this.parent().addClass("active");
+			}
+		});
+
+		//全选	 
+		function CheckAll(thisform) {
+			for (var i = 0; i < thisform.elements.length; i++) {
+				var c_form = thisform.elements[i];
+				if (c_form.Name != "chkAll" && c_form.disabled != true) {
+					c_form.checked = thisform.chkAll.checked;
+					document.getElementById("delete").style.display = "block";
+				}
+			}
+		}
+
+		//显示删除、下载按钮
+		function show() {
+			var input = document.getElementsByName("check");
+			for (var i = 0; i < input.length; i++) {
+				var number = i + 1;
+				var input1 = document.getElementById("input" + number);
+				if (input1.checked == true) {
+					document.getElementById("delete").style.display = "block";
+					document.getElementById("download").style.display = "block";
+					break;
+				} else {
+					document.getElementById("delete").style.display = "none";
+					document.getElementById("download").style.display = "none";
+				}
+			}
+		}
+		//上传功能
+		$(function() {
+			createUploader();
+		});
+		function loadallfile() {
+			var data = {
+				path : "${path}"
+			};
+			$.ajax({
+				url : "home.action",
+				type : "post",
+				data : data,
+				success : function(s) {
+				}
+			});
+
+		}
+
+		function createUploader() {
+			var uploader = new qq.FineUploader(
+					{
+						element : document.getElementById('result-uploader'),
+						request : {
+							endpoint : 'uploadfile.action'
+						},
+						text : {
+							uploadButton : '<i class="glyphicon glyphicon-plus"></i>上传文件'
+						},
+						template : '<div class="qq-uploader">'
+								+ '<pre class="qq-upload-drop-area"><span>{dragZoneText}</span></pre>'
+								+ '<div class="qq-upload-button btn btn-default btn-sm" style="background: #F6F6F6;border: 1px solid rgb(206, 206, 206);display: inline;top: 3px;padding: 5px 15px 7px 15px;width: 100%;position: relative;overflow: hidden;border-radius: 0;">{uploadButtonText}</div>'
+								+ '<span class="qq-drop-processing" style="display:none"><span>{dropProcessingText}</span>'
+								+ '<span class="qq-drop-processing-spinner"></span></span>'
+								+ '<ul class="qq-upload-list" style="margin-top: 10px; text-align: center;display:none"></ul>'
+								+ '</div>',
+						classes : {
+							success : 'alert alert-success',
+							fail : 'alert alert-error'
+						},
+						callbacks : {
+							onComplete : function(id, fileName, responseJSON) {
+								if (responseJSON.success) {
+									var fielpath = responseJSON.other;
+									createfile(fileName, fielpath);
+								}
+							}
+						}
+					});
+		}
+
+		/* function createUploader() {
+			var uploader = new qq.FineUploader(
+					{
+						element : document.getElementById('result-uploader'),
+						request : {
+							endpoint : 'uploadfile.action'
+						},
+						text : {
+							uploadButton : '<i class="font-icon fa  fa-folder-open-o"></i>上传文件'
+						},
+						template : '<div class="qq-uploader">'
+								+ '<pre class="qq-upload-drop-area"><span>{dragZoneText}</span></pre>'
+								+ '<div class="qq-upload-button btn btn-primary" style="display:inline;padding:12px 15px">{uploadButtonText}</div>'
+								+ '<span class="qq-drop-processing" style="display:none"><span>{dropProcessingText}</span>'
+								+ '<span class="qq-drop-processing-spinner"></span></span>'
+								+ '<ul class="qq-upload-list" style="margin-top: 10px; text-align: center;display:none"></ul>'
+								+ '</div>',
+						classes : {
+							success : 'alert alert-success',
+							fail : 'alert alert-error'
+						},
+						callbacks : {
+							onComplete : function(id, fileName, responseJSON) {
+								if (responseJSON.success) {
+									var fielpath = responseJSON.other;
+									createfile(fileName, fielpath);
+								}
+							}
+						}
+					});
+		} */
+		function createfile(fileName, filepath) {
+			var data = {
+				path : "${path}",
+				name : fileName,
+				filepath : filepath
+			};
+			alert("上传成功");
+			$.ajax({
+				url : "createfile.action",
+				type : "post",
+				data : data,
+				success : function(s) {
+					location.reload();
+				}
+			});
+		}
+		//新建文件夹
+		function newdir() {
+			var name = prompt('请输入文件夹名称', '');
+			if (name !== null && name != "") {
+				var dirname = name;
+				var path = "${path}";
+				var data = {
+					path : path,
+					name : dirname
+				};
+				$.ajax({
+					url : "createdir.action",
+					type : "post",
+					data : data,
+					success : function(s) {
+						if (s.success) {
+							location.reload();
+						} else {
+							alert(s.msg);
+						}
+					}
+
+				});
+			}
+		}
+		//删除文件
+		function deletefile() {
+			if (confirm("你确定要删除所选文件吗？")) {
+				var input1 = document.getElementsByName("check");
+				var data = '[';
+				for (var i = 0; i < input1.length; i++) {
+					if (input1[i].checked == true) {
+						var path = input1[i].parentNode.parentNode.childNodes[1];
+						path = path.innerHTML
+						path = decodeURIComponent(path);
+						var name = input1[i].value;
+						var Dir = input1[i].parentNode.parentNode.parentNode.parentNode
+								.getElementsByTagName("a")
+						if (Dir.length > 0) {
+							isDir = true;
+						} else {
+							isDir = false;
+						}
+						data += '{"path":"' + path + '","name":"' + name
+								+ '","isDir":"' + isDir + '"}';
+						if (i < (input1.length - 1)) {
+							data += ',';
+						}
+					}
+				}
+				data += ']';
+				var data = eval('(' + data + ')');
+				$.ajax({
+					url : "deletefiles.action",
+					type : "post",
+					contentType : "application/json; charset=utf-8",
+					data : JSON.stringify(data),
+					success : function(s) {
+						location.reload();
+					}
+				});
+
+			}
+		}
+		//下载文件
+		function downloadfile() {
+			var input1 = document.getElementsByName("check");
+			var data = '';
+			for (var i = 0; i < input1.length; i++) {
+				if (input1[i].checked == true) {
+					var Dir = input1[i].parentNode.parentNode.parentNode.parentNode
+							.getElementsByTagName("a");
+					if (Dir.length > 0) {
+						alert("文件夹无法提供下载，请进入文件夹选择需要文件进行下载");
+						return;
+					} else {
+						var path = input1[i].parentNode.parentNode.childNodes[1].innerHTML;
+						path = decodeURIComponent(path);
+						var name = input1[i].value;
+					}
+					data += path + ",";
+
+				}
+			}
+			if (Dir.length > 0) {
+				location.reload();
+			} else {
+				data = data.substring(0, data.length - 1);
+				$("#download").attr("href", "download.action?paths=" + data);
+			}
+
+		}
+	</script>
+
+</body>
+</html>

@@ -1,0 +1,154 @@
+/*
+ * Copyright (c) 2014, 2016, XIANDIAN and/or its affiliates. All rights reserved.
+ * XIANDIAN PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ *
+ */
+package com.xiandian.cloud.storage.sh.util;
+
+import java.io.IOException;
+import java.util.Properties;
+
+import org.openstack4j.api.OSClient.OSClientV2;
+import org.openstack4j.api.OSClient.OSClientV3;
+import org.openstack4j.model.common.Identifier;
+import org.openstack4j.openstack.OSFactory;
+
+/**
+ * 工具类，提供公共方法
+ * 
+ * @author 云计算应用与开发项目组
+ * @since V1.4
+ * 
+ */
+public class UtilTools {
+	public static String COFING_FILE = "/config/xiandian.properties";
+	public static Properties p;
+	public static String AUTHURL = UtilTools.getConfig().getProperty("AUTHURL");
+	public static String USERNAME = UtilTools.getConfig().getProperty("USERNAME");
+	public static String PASSWORD = UtilTools.getConfig().getProperty("PASSWORD");
+	public static String TENANTID = UtilTools.getConfig().getProperty("TENANTID");
+	public static String TENANTNAME = UtilTools.getConfig().getProperty("TENANTNAME");
+	
+
+	public static Properties getConfig() {
+		if (p == null) {
+			p = new Properties();
+			try {
+				p.load(Thread.currentThread().getContextClassLoader()
+						.getResourceAsStream(COFING_FILE));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return p;
+	}
+
+	public static OSClientV2 getConnection() {
+		OSClientV2 os = OSFactory
+				.builderV2()
+				.endpoint(AUTHURL)
+				.credentials(USERNAME, PASSWORD)
+				.tenantName(TENANTNAME)
+				.authenticate();
+		return os;
+	}
+
+	public static String replaceStr(String str) {
+		str = str.replaceAll("%2F", "/");
+		return str;
+	}
+
+	private static String imgeArray[] = { "bmp", "dib", "gif", "jfif", "jpe",
+			"jpeg", "jpg", "png", "tif", "tiff", "ico" };
+
+	private static String docArray[] = { "doc", "docx", "ppt", "pptx", "xls",
+			"xlsx", "txt", "pdf", "csv", "xml", "sql" };
+
+	private static String aviArray[] = { "avi", "wmv", "rmvb", "rm", "mp4",
+			"mpg", "mkv", "swf", "flv", "asf", "mov" };
+
+	private static String mp3Array[] = { "mp3", "wav", "mod", "mid", "cda",
+			"ogg", "mod", "ra" };
+
+	public static boolean isImage(String name) {
+		int index = name.lastIndexOf(".");
+		if (index == -1) {
+			return false;
+		}
+		String tmpName = name.substring(index + 1, name.length());
+		int len = imgeArray.length;
+		for (int i = 0; i < len; i++) {
+			if (imgeArray[i].equals(tmpName.toLowerCase())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public static boolean isDoc(String name) {
+		int index = name.lastIndexOf(".");
+		if (index == -1) {
+			return false;
+		}
+		String tmpName = name.substring(index + 1, name.length());
+		int len = docArray.length;
+		for (int i = 0; i < len; i++) {
+			if (docArray[i].equals(tmpName.toLowerCase())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public static boolean isMediea(String name) {
+		int index = name.lastIndexOf(".");
+		if (index == -1) {
+			return false;
+		}
+		String tmpName = name.substring(index + 1, name.length());
+		int len = aviArray.length;
+		for (int i = 0; i < len; i++) {
+			if (aviArray[i].equals(tmpName.toLowerCase())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public static boolean isMp3(String name) {
+		int index = name.lastIndexOf(".");
+		if (index == -1) {
+			return false;
+		}
+		String tmpName = name.substring(index + 1, name.length());
+		int len = mp3Array.length;
+		for (int i = 0; i < len; i++) {
+			if (mp3Array[i].equals(tmpName.toLowerCase())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public static String convertFileSize(long filesize) {
+		String strUnit = "Bytes";
+		String strAfterComma = "";
+		int intDivisor = 1;
+		if (filesize >= 1024 * 1024)
+
+		{
+			strUnit = "MB";
+			intDivisor = 1024 * 1024;
+		} else if (filesize >= 1024) {
+			strUnit = "KB";
+			intDivisor = 1024;
+		}
+		if (intDivisor == 1)
+			return filesize + " " + strUnit;
+		strAfterComma = "" + 100 * (filesize % intDivisor) / intDivisor;
+		if (strAfterComma == "")
+			strAfterComma = ".0";
+		return filesize / intDivisor + "." + strAfterComma + " " + strUnit;
+	}
+
+}

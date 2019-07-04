@@ -1,0 +1,167 @@
+/*
+ * Copyright (c) 2014, 2016, XIANDIAN and/or its affiliates. All rights reserved.
+ * XIANDIAN PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ *
+ */
+package com.xiandian.cloud.storage.service.sup;
+
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+
+import com.xiandian.cloud.storage.domain.User;
+@Service
+public abstract class Storage {
+	
+	/**
+	 * 取得路径下的所有文件
+	 */
+	public List getAllStoredList(String username, String path){
+		return null;};
+	
+	
+	/**
+	 * 取得路径下的所有文件夹
+	 */
+	public List getAllStoredDirectoryList(String username, String path,String
+			upath){
+				return null;
+		
+	};
+	
+	/**
+	 * 创建文件夹
+	 * 
+	 * @param name
+	 * @return
+	 */
+	public boolean createDir(String username,String path, String name) {
+		return false;
+		
+		
+	}
+	
+	/**
+	 * 创建文件
+	 * 
+	 * @param name
+	 * @return
+	 */
+	public boolean createFile(String username,String path, String name, String filepath){
+		return false;
+		
+	}
+	
+	/**
+	 * 移动文件
+	 * 
+	 * @param email
+	 * @param path
+	 */
+	public boolean movefile(String username,List<Map<String,Object>> list){
+		return false;
+		
+	}
+	
+	
+	/**
+	 * 复制文件
+	 * 
+	 * @param email
+	 * @param path
+	 */
+	public boolean copyfile(String username,List<Map<String,Object>> list){
+		return false;
+		
+	}
+	
+	
+	/**
+	 * 删除文件
+	 * 移动到回收站，由于没有实现还原，所以简化实现删除
+	 * 
+	 */
+	public void deletefiles(User user, List<Map<String, Object>> list){
+		
+	}
+	
+	/**
+	 * 搜索根路径下的所有与key匹配的文件及文件夹
+	 * 
+	 * @param username
+	 * @param upath
+	 * @param key
+	 * @return
+	 */
+	public List searchStoredList(String username,String upath,String key){
+		return null;
+		
+	};
+	
+	
+	/**
+	 * 取得垃圾箱路径下的所有文件
+	 */
+	public List getAllGarbageList(String username) {
+		return null;
+	}
+	
+	
+	/**
+	 * 取得路径下对应类型的所有文件
+	 * 
+	 * @param email
+	 * @return
+	 */
+	public List getCategoryStoredList(String username, int type,String upath) {
+		return null;
+	}
+	/**
+	 * 重命名文件
+	 * 
+	 * @param email
+	 * @param path
+	 */
+	public boolean updatefile(String path, String name, String rename,
+			boolean isdir) {
+		return false;
+	}
+	
+	/**
+	 * 删除垃圾箱的文件
+	 * 
+	 * @param email
+	 * @param path
+	 */
+	public void deletegarbagefile(String username, String path) {
+	}
+
+	/**
+	 * 判断原来的路径上是否已经有文件了
+	 * 
+	 * @param email
+	 * @param path
+	 */
+	public boolean backhasfile(String username, String path) {
+		return false;
+	}
+	
+	/**
+	 * 还原垃圾箱的文件
+	 * 
+	 * @param email
+	 * @param path
+	 */
+	public void backgarbagefile(String username, List<Map<String, Object>> list) {
+	}
+	
+	/**
+	 * 清空垃圾箱
+	 * 
+	 * @param email
+	 * @param path
+	 */
+	public void deleteallgarbagefile(String username) {
+	}
+}

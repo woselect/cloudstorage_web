@@ -1,0 +1,1168 @@
+<%@ page language="java" import="java.util.*" pageEncoding="utf-8"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+<%
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path + "/";
+%>
+
+<!DOCTYPE html>
+<!--[if IE 7]><html class="ie7 lte9 lte8 lte7" lang="zh-cn"><![endif]-->
+<!--[if IE 8]><html class="ie8 lte9 lte8" lang="zh-cn"><![endif]-->
+<!--[if IE 9]><html class="ie9 lte9" lang="zh-cn"><![endif]-->
+<!--[if gt IE 9]><!-->
+<html lang="zh-cn">
+<!--<![endif]-->
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="">
+<meta name="author" content="">
+<title>先电云存储</title>
+<!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+<link href="assets/stylesheets/bootstrap.min.css" media="all" rel="stylesheet"
+	type="text/css" />
+<link href="assets/stylesheets/style.css" media="all" rel="stylesheet" type="text/css" />
+<link href="assets/stylesheets/disk.css" media="all" rel="stylesheet" type="text/css" />
+<link href="assets/stylesheets/font-awesome.css" media="all" rel="stylesheet"
+	type="text/css" />
+<link rel="stylesheet" href="assets/stylesheets/zTreeStyle.css" type="text/css">
+<style>
+</style>
+</head>
+
+<body onkeydown="keyLogin()">
+	<jsp:include page="common/header.jsp"></jsp:include>
+	<div class="main">
+		<div class="main-left" style="z-index: 1;">
+			<div class="main-left" style="z-index: 1;">
+				<div class="list-group category" style="margin: 10px;">
+					<div id="ahref">
+						<a class="list-group-item active" id="r_active" href="home.action"><span
+							class="glyphicon glyphicon-home left-icon"></span>&nbsp;&nbsp;全部文件</a>
+						<a class="list-group-item " id="type" onclick="gettype(href)"
+							href="category.action?type=2"><span
+							class="glyphicon glyphicon-file left-icon"> </span>&nbsp;&nbsp;我的文档</a>
+						<a class="list-group-item " href="category.action?type=1"
+							onclick="gettype(href)"><span
+							class="glyphicon glyphicon-picture left-icon"></span>&nbsp;&nbsp;我的图片</a>
+						<a class="list-group-item " id="type"
+							href="category.action?type=3" onclick="gettype(href)"><span
+							class="glyphicon glyphicon-film left-icon"></span>&nbsp;&nbsp;我的视频</a>
+						<a class="list-group-item " id="type"
+							href="category.action?type=4" onclick="gettype(href)"><span
+							class="glyphicon glyphicon-music left-icon"></span>&nbsp;&nbsp;我的音乐</a>
+						<a class="list-group-item" id="type" href="category.action?type=5"
+							onclick="gettype(href)"><span
+							class="glyphicon glyphicon-inbox left-icon"></span>&nbsp;&nbsp;其他</a>
+						<!-- <a class="list-group-item" id="type" href="shareFile.action"><span
+							class="glyphicon glyphicon-share left-icon"></span>&nbsp;&nbsp;我的分享</a> -->
+
+						<a class="list-group-item" href="garbage.action"><span
+							class="glyphicon glyphicon-trash left-icon"></span>&nbsp;&nbsp;垃圾箱</a>
+					</div>
+				</div>
+				<div class="main-left-use">
+
+					<div class="progress progress-u progress-xs">
+						<div class="progress-bar progress-bar-blue" id="progress-bar"
+							role="progressbar" aria-valuemin="0" aria-valuemax="100" style=""></div>
+					</div>
+					<h3 class="heading-xs" style="font-size: 10px; padding: 0 10px">
+						容量：<span class="" id="totle"></span><span
+							class="capacity pull-right"><a href="javascript:void(0)">扩容</a></span>
+					</h3>
+
+				</div>
+			</div>
+		</div>
+		<div class="main-right"
+			style="left: 199px; position: fixed; top: 89px; right: 0; bottom: 32px; overflow: auto;">
+			<div class="col-md-12" style="padding: 0">
+				<div class="tools">
+					<div class="tools-left">
+						<div class="main-left" style="z-index: 1;">
+							<div class="main-left" style="z-index: 1;">
+								<div class="list-group category" style="margin: 10px;">
+									<a class="list-group-item active" id="r_active"
+										href="home.action"><span
+										class="glyphicon glyphicon-home left-icon"></span>&nbsp;&nbsp;全部文件</a>
+									<a class="list-group-item " href="category.action?type=2"><span
+										class="glyphicon glyphicon-file left-icon"> </span>&nbsp;&nbsp;我的文档</a>
+									<a class="list-group-item " href="category.action?type=1"><span
+										class="glyphicon glyphicon-picture left-icon"></span>&nbsp;&nbsp;我的图片</a>
+									<a class="list-group-item " href="category.action?type=3"><span
+										class="glyphicon glyphicon-film left-icon"></span>&nbsp;&nbsp;我的视频</a>
+									<a class="list-group-item " href="category.action?type=4"><span
+										class="glyphicon glyphicon-music left-icon"></span>&nbsp;&nbsp;我的音乐</a>
+									<a class="list-group-item" href="category.action?type=5"><span
+										class="glyphicon glyphicon-inbox left-icon"></span>&nbsp;&nbsp;其他</a>
+									<a class="list-group-item " href="/store/shareFile"><span
+										class="glyphicon glyphicon-share left-icon"></span>&nbsp;&nbsp;我的分享</a>
+									<a class="list-group-item" href="garbage.action"><span
+										class="glyphicon glyphicon-trash left-icon"></span>&nbsp;&nbsp;垃圾箱</a>
+								</div>
+								<div class="main-left-use">
+
+									<div class="progress progress-u progress-xs">
+										<div class="progress-bar progress-bar-blue" id="progress-bar"
+											role="progressbar" aria-valuemin="0" aria-valuemax="100"
+											style=""></div>
+									</div>
+									<h3 class="heading-xs" style="font-size: 10px; padding: 0 10px">
+										容量：<span class="" id="totle"></span><span
+											class="capacity pull-right"><a
+											href="javascript:void(0)">扩容</a></span>
+									</h3>
+
+								</div>
+							</div>
+						</div>
+						<div class="main-right"
+							style="left: 199px; position: fixed; top: 89px; right: 0; bottom: 32px; overflow: auto;">
+							<div class="col-md-12" style="padding: 0">
+								<div class="tools">
+									<div class="tools-left">
+										<!-- 文件功能 -->
+										<div class="btn-group btn-group-sm kod_path_tool fl-left">
+											<div id="result-uploader" class="right upload-filemain fl"
+												style="float: left"></div>
+											<button class="btn btn-default" type="button"
+												onclick="newdir()" id="newdir">
+												<i class="font-icon fa  fa-folder-open-o"
+													style="color: #888"></i>新建文件夹
+											</button>
+											<button class="btn btn-default" style="display: none;"
+												type="button" onclick="deletefile()" id="delete">
+												<i class="font-icon glyphicon glyphicon-trash"
+													style="color: #888"></i>删除
+											</button>
+											<a class="btn btn-default" type="button"
+												style="display: none;" onclick="downloadfile()"
+												href="javascript:void(0)" id="download"
+												style="background: #F6F6F6;"> <i
+												class="font-icon glyphicon glyphicon-download-alt"
+												style="color: #888"></i>下载
+											</a>
+											<button class="btn btn-default" style="display: none;"
+												type="button" id="rename" onclick="renanme()">
+												<i class="font-icon glyphicon glyphicon-pencil"
+													style="color: #888"></i>重命名
+											</button>
+											<a class='btn btn-default' style="display: none;"
+												href="javascript:void(0);" onclick="downloadfile()"
+												id="download"> <span
+												class="glyphicon glyphicon-download-alt"><span>下载文件</a>
+											<a href="javascript:void(0);" class='btn btn-default'
+												style="display: none;" id="copy" onclick="getdir1()"> <span
+												class="glyphicon glyphicon-file"></span>复制
+											</a> <a href="javascript:void(0);" class='btn btn-default'
+												style="display: none;" id="move" onclick="getdir1()"> <span
+												class="glyphicon glyphicon-transfer"></span>移动
+											</a> <a href="javascript:void(0);" class='btn btn-default'
+												style="display: none;" id="rename" onclick="renanme()">
+												<span class="glyphicon glyphicon-pencil"></span>重命名
+											</a> <a class='btn btn-default' style="display: none"
+												id="Dataanalysis" target="_blank"> </a>
+											<ul
+												style="position: relative; float: left; padding-left: 0px">
+												<li class="dropdown" style="list-style: none"><a
+													class="dropdown-toggle btn btn-default"
+													data-toggle="dropdown" id="selectColumn"
+													style="display: none; border-radius: 0px; padding: 4px 12px;"
+													href="javascript:void(0);">数据分析</a>
+													<ul class="dropdown-menu cloudanys"
+														style="margin-top: 4px !important;">
+														<li><a href="javascript:void(0);"
+															onclick="analysis(1)">词云分析</a></li>
+														<li class="divider"></li>
+														<li><a href="javascript:void(0);"
+															onclick="analysis(2)">柱状分析</a></li>
+														<li class="divider"></li>
+														<li><a href="javascript:void(0);"
+															onclick="analysis(3)">气泡分析</a></li>
+													</ul></li>
+											</ul>
+
+										</div>
+										<div class="clearfix"></div>
+									</div>
+								</div>
+							</div>
+							<div class="col-md-12" style="top: 2px; z-index: 99999999;">
+								<div class="btn-toolbar  main-btnbar pull-right"
+									style="position: fixed; right: 21px; margin-top: 1px">
+									<div class="btn-group" id="searchnone" style="display: block">
+										<a class="btn btn-default active"
+											href="home.action?path=${path}" id="btn"><span
+											class="glyphicon glyphicon-th-list"></span></a> <a
+											class="btn btn-default " href="gridview.action?path=${path}"
+											id="btn1"><span class="glyphicon glyphicon-th-large"></span></a>
+									</div>
+								</div>
+							</div>
+
+							<div class="col-md-12" style="padding: 0; top: 45px">
+								<div class=" panel-col lesson-manage-panel"
+									style="min-height: 700px; border: 0px solid transparent;">
+									<div class="col-md-12 tableth">
+										<div class="hide" id="search-span" style="color: #ADADAD">搜索结果:</div>
+										<table class="table  mb-0">
+											<thead>
+												<tr>
+													<th class="table-checkbox"
+														style="position: relative; left: 13px;"><label
+														class="checkbox checkbox-position" style="min-height: 0"
+														for="checkbox1"> <span class="icons icon-span">
+																<span class="first-icon fui-checkbox-unchecked"></span>
+																<span class="second-icon fui-checkbox-checked"></span>
+														</span> <input name="chkAll" type="checkbox" id="operAll"
+															onClick="getAll()" value="checkbox" class="main-check">
+													</label></th>
+													<th class="mainfile-name">文件名</th>
+													<th class="hide table-fileposition mainfile-position">文件位置</th>
+													<th class="mainfile-size">大小</th>
+													<!-- <th class="mainfile-size" id="share_th">分享</th> -->
+													<th class="mainchange-date">修改日期</th>
+												</tr>
+											</thead>
+											<tbody id="tab">
+												<c:forEach var="fb" items="${list}">
+													<tr>
+														<td style="top: -6px; position: relative; left: 13px;"><label
+															class="checkbox table-checkboxposition" for="checkbox1">
+																<span class="icons main-icons"> <span
+																	class="first-icon fui-checkbox-unchecked"></span> <span
+																	class="second-icon fui-checkbox-checked"></span>
+															</span> <input type="checkbox" name='check'
+																class="main-tabinput" onclick="show()">
+														</label></td>
+														<td><span style="display: block"><c:if
+																	test="${fb.isdirectory == true}">
+																	<img src="assets/images/0.png" class="objimg">
+																	<a href="home.action?path=${fb.path}"><input
+																		name="objimg" type="text" style="display: none"
+																		value="${fb.name}">
+																</c:if>${fb.name}<c:if test="${fb.isdirectory == true}">
+																	</a>
+																</c:if></span>
+															<div class="edit-name" style="display: none;">
+																<input class="box" type="text" value="${fb.name}">
+																<a class="sure" href="javascript:void(0);"
+																	onclick="sure()"><span
+																	class="glyphicon glyphicon-ok"></span></a> <a
+																	class="cancel ml-10" onclick="cancel()"
+																	href="javascript:void(0);"> <span
+																	class="glyphicon glyphicon-remove"></span></a>
+															</div></td>
+														<td class="hide table-fileposition table-path">${fb.path}</td>
+														<td>${fb.length}</td>
+
+														<%-- <td id="share_td"><c:if test="${fb.length != null}">
+																<a type="button"
+																	onclick="share('${fb.name}','${fb.path}',${fb.isdirectory},'${fb.length}') "><img
+																	src="assets/images/share2.png" width=20px height=20px /></a>
+															</c:if></td> --%>
+
+														<!-- <td id="share_td"><a onclick="share();">1</td> -->
+														<td>${fb.lastmodified }</td>
+													</tr>
+												</c:forEach>
+											</tbody>
+
+										</table>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					
+					<!--  购买容量    -->
+					<jsp:include page="common/buystore.jsp"></jsp:include>
+					<!-- 移动 -->
+					<div class="lb-move" style="display: none;">
+						<div class="container pl-266">
+							<div class="move-box-head">
+								<p>移动文件夹</p>
+								<div class="lb-closeContainer">
+									<a class="lb-close move-lb-close" href="javascript:void(0);">
+										<span class="glyphicon glyphicon-remove"></span>
+									</a>
+								</div>
+							</div>
+							<div class="move-box">
+								<div class="move-box-content">
+									<div class="move-box-position">
+										<div>
+											<p class="move-position-head">选择移动到的位置</p>
+											<div class="move-position-back">
+												<a href="javascript:void(0);" onclick="getdir1()">&laquo;返回</a>
+											</div>
+										</div>
+										<div class="move-copy-filder">
+											<div class="myDiv"></div>
+										</div>
+									</div>
+									<button class="btn btn-primary move-button" onclick="Move();">提交</button>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- 复制 -->
+					<div class="lb-copy" style="display: none;">
+						<div class="container pl-266">
+							<div class="move-box-head">
+								<p>复制文件</p>
+								<div class="lb-closeContainer">
+									<a class="lb-close move-lb-close" href="javascript:void(0);">
+										<span class="glyphicon glyphicon-remove"></span>
+									</a>
+								</div>
+							</div>
+							<div class="move-box">
+								<div class="move-box-content">
+									<div class="move-box-position">
+										<div>
+											<p class="move-position-head">选择复制到的位置</p>
+											<div class="move-position-back">
+												<a href="javascript:void(0);" onclick="getdir1()">&laquo;返回</a>
+											</div>
+										</div>
+										<div class="move-copy-filder">
+											<div class="myDiv"></div>
+										</div>
+									</div>
+									<button class="btn btn-primary move-button" onclick="Copy();">提交</button>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div id="modal3" class="modal1 mymodal" aria-hidden="true"
+						style="display: none;">
+						<div class="modal-dialog ">
+							<div class="modal-content">
+								<div class="modal-header">
+									<button type="button" class="close gb" data-dismiss="modal"
+										aria-hidden="true" onclick="close1()">×</button>
+									<h4 class="modal-title1">分享文件</h4>
+								</div>
+								<div class="modal-body">
+									<div class="tab-v1">
+										<ul class="nav nav-tabs">
+											<li class="active"><a href="javascript:void(0)"
+												onclick="allshare()">公开分享</a></li>
+											<li class=""><a href="javascript:void(0)"
+												onclick="secshare()">私密分享</a></li>
+										</ul>
+										<div class="tab-content">
+											<div id="home1" class="tab-pane fade active in">
+												<div class="row"
+													style="margin-left: -1px; margin-right: -1px">
+													<div class="alert alert-warning ">
+														<strong>!</strong> 公开分享的文件会出现在你的分享主页上。
+													</div>
+													<div class="col-md-8" id="publicLink">
+														<p>
+															<button class="btn rounded btn-info" type="button"
+																onclick="createlink(1)">创建公开连接</button>
+														</p>
+													</div>
+												</div>
+											</div>
+											<div id="profile" class="tab-pane fade">
+												<div class="row"
+													style="margin-left: -1px; margin-right: -1px">
+													<div class="alert alert-warning ">
+														<strong>!</strong> 只有分享的好友能看到，其他人看不到哦。
+													</div>
+													<div class="col-md-8" id="securitLink">
+														<p>
+															<button class="btn rounded btn-info" type="button"
+																onclick="createlink(2)">创建私密连接</button>
+														</p>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="modal-footer">
+									<!-- <button type="button" class="btn btn-primary gb" onclick="">保存</button> -->
+									<button type="button" class="btn btn-primary"
+										onclick="close1()">关闭</button>
+								</div>
+							</div>
+						</div>
+					</div>
+
+
+
+					<!--  JavaScript-->
+					<script src="assets/javascripts/jquery.min.js"></script>
+					<script src="assets/javascripts/bootstrap.min.js"></script>
+					<script src="assets/javascripts/fineuploader.js"></script>
+					<script src="assets/javascripts/checkbox.js"></script>
+					<script src="assets/javascripts/common.js"></script>
+					<script src="assets/javascripts/jquery.zclip.min.js"></script>
+					<script type="text/javascript">
+		//路径显示
+		function Split() {
+			var currentpath = $("input[name='mydiv1']").val();
+			var splitpath = currentpath.split("/");
+			splitpath = "${path}".split("/");
+			var newpath = "";
+			for (var i = 0; i < splitpath.length - 1; i++) {
+				var tmp = '<a href="home.action?path=' + newpath + splitpath[i]
+						+ '/" class="f" style="margin-left:5px">'
+						+ splitpath[i] + '/</a>';
+				newpath += splitpath[i] + '/';
+				$(".mydiv").append(tmp);
+			}
+		}
+
+		
+
+		$(document)
+				.ready(
+						function() {
+							
+							getsize();
+							
+							createUploader();
+							//Split();
+							var path = "/cloudstoragefull/search.action";
+							var pathname = window.location.pathname;
+							if (path == String(window.location.pathname)) {
+								$(".table-fileposition").removeClass("hide");
+								$("#searchnone").css("display", "none");
+							} else {
+								$(".table-fileposition").addClass("hide");
+								$("#searchnone").css("display", "block");
+							}
+
+							$("#toggle-left")
+									.click(
+											function() {
+												if ($(".leftclose").hasClass(
+														"col-md-offset-2")) {
+													$("#leftshow").animate({
+														left : '-700px'
+													}, "15")
+													$(".leftclose")
+															.removeClass(
+																	"col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 ");
+												} else {
+													$(".leftclose")
+															.addClass(
+																	"col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 ");
+													$("#leftshow").animate({
+														left : '0px'
+													})
+												}
+											});
+
+							$("#btn1").click(function() {
+								$("#btn").removeClass("active");
+								$(this).addClass("active");
+							});
+
+							$("#btn").click(function() {
+								$("#btn1").removeClass("active");
+								$(this).addClass("active");
+							});
+
+							$("#move").click(function() {
+								$(".lightboxOverlay").fadeIn();
+								$(".lb-move").fadeIn();
+							});
+
+							$(".lb-close").click(function() {
+								$(".lightboxOverlay").fadeOut();
+								$(".lb-move").fadeOut();
+								$(".lb-copy").fadeOut();
+							});
+
+							$("#copy").click(function() {
+								$(".lightboxOverlay").fadeIn();
+								$(".lb-copy").fadeIn();
+
+							});
+						});
+
+		//导航栏选中效果   	 
+		$(".category #ahref a").each(function() {
+			$this = $(this);
+			if ($this[0].href == String(window.location)) {
+				$("#r_active").removeClass("active");
+				$(".table-fileposition").removeClass("hide");
+				var vhref = String(window.location.search);
+				if(vhref==""){
+				$("#btn").attr("href", "home.action" + vhref);
+				$("#btn1").attr("href", "gridview.action" + vhref);
+				}
+				else{
+				$("#btn").attr("href", "category.action" + vhref);
+				$("#btn1").attr("href", "categoryview.action" + vhref);
+				}
+				$this.addClass("active");
+			}
+		});
+
+		//全选    
+		function getAll() {
+			var tit = document.getElementById("operAll");
+			var inputs = document.getElementsByName("check");
+			for (var i = 0; i < inputs.length; i++) {
+				if (inputs[i].type == "checkbox") {
+					if (tit.checked == true) {
+						inputs[i].checked = true;
+						document.getElementById("delete").style.display = "block";
+						document.getElementById("download").style.display = "block";
+					} else {
+						inputs[i].checked = false;
+						document.getElementById("delete").style.display = "none";
+						document.getElementById("download").style.display = "none";
+					}
+				}
+			}
+		}
+
+		//显示重命名、下载、删除、移动、复制选项
+		function show() {
+			var objTable = document.getElementById("tab");
+			for (var i = 0; i < objTable.rows.length; i++) {
+				var checkbox = objTable.rows[i].childNodes[1].childNodes[0].childNodes[5];
+				if (checkbox.checked == true) {
+					document.getElementById("delete").style.display = "block";
+					document.getElementById("download").style.display = "block";
+					document.getElementById("rename").style.display = "block";
+					document.getElementById("move").style.display = "block";
+					document.getElementById("copy").style.display = "block";
+					document.getElementById("selectColumn").style.display = "block";
+
+					break;
+				} else {
+					document.getElementById("delete").style.display = "none";
+					document.getElementById("download").style.display = "none";
+					document.getElementById("rename").style.display = "none";
+					document.getElementById("move").style.display = "none";
+					document.getElementById("copy").style.display = "none";
+					document.getElementById("selectColumn").style.display = "none";
+				}
+			}
+		}
+
+		//上传文件
+		function createUploader() {
+			var uploader = new qq.FineUploader(
+					{
+						element : document.getElementById('result-uploader'),
+						request : {
+							endpoint : 'uploadfile.action'
+						},
+						text : {
+							uploadButton : '<i class="glyphicon glyphicon-plus"></i>上传文件'
+						},
+						template : '<div class="qq-uploader">'
+								+ '<pre class="qq-upload-drop-area"><span>{dragZoneText}</span></pre>'
+								+ '<div class="qq-upload-button btn btn-default btn-sm" style="background: #F6F6F6;border: 1px solid rgb(206, 206, 206);display: inline;top: 3px;padding: 5px 15px 7px 15px;width: 100%;position: relative;overflow: hidden;border-radius: 0;">{uploadButtonText}</div>'
+								+ '<span class="qq-drop-processing" style="display:none"><span>{dropProcessingText}</span>'
+								+ '<span class="qq-drop-processing-spinner"></span></span>'
+								+ '<ul class="qq-upload-list" style="margin-top: 10px; text-align: center;display:none"></ul>'
+								+ '</div>',
+						classes : {
+							success : 'alert alert-success',
+							fail : 'alert alert-error'
+						},
+						callbacks : {
+							onComplete : function(id, fileName, responseJSON) {
+								if (responseJSON.success) {
+									var fielpath = responseJSON.other;
+									createfile(fileName, fielpath);
+								}
+							}
+						}
+					});
+		}
+		function createfile(fileName, filepath) {
+			var data = {
+				path : "${path}",
+				name : fileName,
+				filepath : filepath
+			};
+			$.ajax({
+				url : "createfile.action",
+				type : "post",
+				data : data,
+				success : function(s) {
+					location.reload();
+				}
+			});
+		}
+
+		//新建文件夹
+		function newdir() {
+			var name = prompt("请输入文件夹名称", '');
+			if (name !== null && name != "") {
+				var dirname = name;
+				var path = "${path}";
+			//	alert(path);
+				var data = {
+					path : path,
+					name : dirname
+				};
+				$.ajax({
+					url : "createdir.action",
+					type : "post",
+					data : data,
+					success : function(s) {
+						if (s.success) {
+							location.reload();
+						} else {
+							alert(s.msg);
+						}
+						;
+					}
+				});
+			}
+		}
+		//下载文件
+		function downloadfile() {
+			var objTable = document.getElementById("tab");
+			var data = '';
+			for (var y = 0; y < objTable.rows.length; y++) {
+				var checkbox = objTable.rows[y].childNodes[1].childNodes[0].childNodes[5];
+				if (checkbox.checked == true) {
+					var td3 = checkbox.parentNode.parentNode.parentNode.childNodes[3];
+					var imgpic = td3.getElementsByTagName("img");
+					if (imgpic.length > 0) {
+						alert("文件夹中内容暂时无法提供下载，请进入文件夹选择相应文件进行下载");
+						return;
+					} else {
+						var path = checkbox.parentNode.parentNode.parentNode.childNodes[5].innerHTML;
+						path = decodeURIComponent(path);
+						var names = td3.childNodes[0].childNodes[0]
+						var name = names.innerHTML
+					}
+					data += path + ",";
+				}
+			}
+			if (imgpic.length > 0) {
+				window.location.reload();
+			} else {
+				data = data.substring(0, data.length - 1);
+				$("#download").attr("href", "download.action?paths=" + data);
+			}
+			
+			var filepath ='';
+			var filename='';
+			var isdir_share='';
+			var filelength='';
+			function share(name,path,isdir,length){
+				filename=name;
+				filepath=path;
+				isdir_share=isdir;
+				filelength= length;
+				$("#modal3").css("display", "block");
+			}
+		}
+
+		//删除文件
+		function deletefile() {
+			if (confirm("你确定要删除所选文件吗？")) {
+				var objTable = document.getElementById("tab");
+				var data = '[';
+				for (var y = 0; y < objTable.rows.length; y++) {
+					var checkbox = objTable.rows[y].childNodes[1].childNodes[0].childNodes[5];
+
+					if (checkbox.checked == true) {
+						var path = checkbox.parentNode.parentNode.parentNode.childNodes[5].innerHTML;
+						path = decodeURIComponent(path);
+						var td3 = checkbox.parentNode.parentNode.parentNode.childNodes[3];
+						var imgpic = td3.getElementsByTagName("img");
+						if (imgpic.length > 0) {
+							isDir = true;
+							var names = td3.childNodes[0].childNodes[3].childNodes[0]
+							var name = $(names).val();
+						} else {
+							isDir = false;
+							var names = td3.childNodes[0].childNodes[0]
+							var name = $(names).text();
+						}
+						data += '{"path":"' + path + '","name":"' + name
+								+ '","isDir":"' + isDir + '"}';
+						if (y < (objTable.rows.length - 1)) {
+							data += ',';
+						}
+					}
+				}
+				data += ']';
+				var data = eval('(' + data + ')');
+				$.ajax({
+					url : "deletefiles.action",
+					type : "post",
+					contentType : "application/json; charset=utf-8",
+					data : JSON.stringify(data),
+					success : function(s) {
+						if (s.success) {
+							alert(s.msg)
+						}
+						location.reload();
+					}
+				});
+			}
+		}
+
+		function keyLogin() {
+			var keynum = $("#navbarInput-01").val();
+			if (keynum !== "") {
+				if (event.keyCode == 13) {
+					document.getElementById("searchfiles").click();
+				}
+			}
+		}
+
+		//对话框显示相应文件夹		
+		function getdir1() {
+			var tmp = '<div class="col-md-3" style="margin-top: 10px;">'
+					+ '<input name="CheckS" type="radio" style="float:left" value="">'
+					+ ' <a href="javascript:void(0);" onclick="getdir()" >'
+					+ '<img src=assets/images/2.png style="height:61px;width:61px">'
+					+ ' <div style="height:21px;width: 87px;overflow:hidden;text-overflow:ellipsis;font-size:10pt;margin-left: 4px;">全部文件</div>'
+					+ '</a></div>';
+			$(".myDiv").html(tmp);
+		}
+
+		function getdir(path) {
+			var data = {
+				path : path
+			};
+			$
+					.ajax({
+						url : "homedir.action",
+						type : "post",
+						data : data,
+						success : function(s) {
+							if (s.success) {
+								var array = s.other;
+								var tmp = '<div style="margin-top: 10px;">';
+								for (var i = 0; i < array.length; i++) {
+									if (array[i]['isdirectory'] == true) {
+										if (array[i]['haschild'] == true) {
+											tmp += ' <div class="col-md-3" style="margin-bottom: 20px;"><input name="CheckS" type="radio" style="float:left" value=\''+array[i]['path']+'\'><a href="javascript:void(0);" onclick="getdir(\''
+													+ array[i]['path']
+													+ '\')" ><img src=assets/images/2.png style="height:61px;width:61px"><div style="height:21px;width: 87px;overflow:hidden;text-overflow:ellipsis;font-size:10pt;">'
+													+ array[i]['name']
+													+ '</div></a></div> ';
+
+										} else {
+											tmp += ' <div class="col-md-3" style="margin-bottom: 20px;">'
+													+ '<input name="CheckS" type="radio" style="float:left" value=\''+array[i]['path']+'\'><img src=assets/images/2.png style="height:61px;width:61px"><div style="height:21px;width: 84%;overflow:hidden;text-overflow:ellipsis;font-size:10pt;margin-left: 13px;">'
+													+ array[i]['name']
+													+ '</div></div> ';
+										}
+									}
+
+								}
+
+								tmp += '</div>';
+								$(".myDiv").html(tmp);
+
+							}
+						}
+					});
+		}
+
+		//移动
+		function Move() {
+			var objTable = document.getElementById("tab");
+			var data = '[';
+			var input1 = document.getElementsByName("CheckS");
+			//alert(input1.val());
+			var newpath;
+			for (var i = 0; i < input1.length; i++) {
+				if (input1[i].checked == true) {
+					newpath = $(input1[i]).val();
+				}
+			}
+			if (newpath == undefined) {
+				alert("请选择移动位置");
+				return;
+			}
+			for (var y = 0; y < objTable.rows.length; y++) {
+				var checkbox = objTable.rows[y].childNodes[1].childNodes[0].childNodes[5];
+				if (checkbox.checked == true) {
+					var current_name = checkbox.parentNode.parentNode.parentNode.childNodes[3].childNodes[2].childNodes[1];
+					var name = $(current_name).val();
+					var path = checkbox.parentNode.parentNode.parentNode.childNodes[5].innerHTML;
+					path = decodeURIComponent(path);
+					var img2 = checkbox.parentNode.parentNode.parentNode.childNodes[3]
+							.getElementsByTagName("img");
+					if (img2.length > 0) {
+						isDir = true;
+					} else {
+						isDir = false;
+					}
+					data += '{"path":"' + path + '","newpath":"' + newpath
+							+ '","isDir":"' + isDir + '","name":"' + name
+							+ '"}';
+					if (y < (objTable.rows.length - 1)) {
+						data += ',';
+					}
+				}
+
+			}
+
+			data += ']';
+			var data = eval('(' + data + ')');
+			$.ajax({
+				url : "movefile.action",
+				type : "post",
+				contentType : "application/json; charset=utf-8",
+				data : JSON.stringify(data),
+				success : function(s) {
+
+					if (s.success) {
+						alert(s.msg);
+
+					} else {
+						alert(s.msg);
+					}
+					location.reload();
+				}
+			});
+
+		}
+
+		//复制
+		function Copy() {
+			var objTable = document.getElementById("tab");
+			var data = '[';
+
+			var input1 = document.getElementsByName("CheckS");
+			var newpath;
+			for (var i = 0; i < input1.length; i++) {
+				if (input1[i].checked == true) {
+					newpath = $(input1[i]).val();
+				}
+			}
+			if (newpath == undefined) {
+				alert("请选择复制位置");
+				return;
+			}
+			//if(newpath==""){alert("请选择复制的位置");return;}
+			for (var y = 0; y < objTable.rows.length; y++) {
+				var checkbox = objTable.rows[y].childNodes[1].childNodes[0].childNodes[5];
+				if (checkbox.checked == true) {
+					var current_name = checkbox.parentNode.parentNode.parentNode.childNodes[3].childNodes[2].childNodes[1]
+					var name = $(current_name).val();
+					var path = checkbox.parentNode.parentNode.parentNode.childNodes[5].innerHTML
+					path = decodeURIComponent(path);
+					var img2 = checkbox.parentNode.parentNode.parentNode.childNodes[3]
+							.getElementsByTagName("img");
+					if (img2.length > 0) {
+						isDir = true;
+					} else {
+						isDir = false;
+					}
+
+					data += '{"path":"' + path + '","newpath":"' + newpath
+							+ '","isDir":"' + isDir + '","name":"' + name
+							+ '"}';
+					if (y < (objTable.rows.length - 1)) {
+						data += ',';
+					}
+				}
+
+			}
+
+			data += ']';
+			var data = eval('(' + data + ')');
+			$.ajax({
+				url : "copyfile.action",
+				type : "post",
+				contentType : "application/json; charset=utf-8",
+				data : JSON.stringify(data),
+				success : function(s) {
+					if (s.success) {
+						alert(s.msg)
+					} else {
+						alert(s.msg);
+					}
+					location.reload();
+				}
+			});
+		}
+
+		//显示重命名框
+		function renanme() {
+			var num = 0;
+			var objTable = document.getElementById("tab");
+			for (var y = 0; y < objTable.rows.length; y++) {
+				var checkbox = objTable.rows[y].childNodes[1].childNodes[0].childNodes[5];
+				if (checkbox.checked == true) {
+					if (num < 1) {
+						var renamebox = checkbox.parentNode.parentNode.parentNode.childNodes[3].childNodes[2];
+						var renametxt = checkbox.parentNode.parentNode.parentNode.childNodes[3].childNodes[0];
+						renametxt.style.display = "none";
+						renamebox.style.display = "block";
+						num += 1;
+					} else {
+						alert('不能同时重命名两个或两个以上文件');
+						location.reload();
+						break;
+					}
+
+				}
+
+			}
+
+		}
+		//取消重命名
+		function cancel() {
+			var objTable = document.getElementById("tab");
+			for (var y = 0; y < objTable.rows.length; y++) {
+				var checkbox = objTable.rows[y].childNodes[1].childNodes[0].childNodes[5];
+				var renamebox = checkbox.parentNode.parentNode.parentNode.childNodes[3].childNodes[2];
+				var renametxt = checkbox.parentNode.parentNode.parentNode.childNodes[3].childNodes[0];
+				renametxt.style.display = "block";
+				renamebox.style.display = "none";
+
+			}
+		}
+
+		//确认重命名
+		function sure() {
+			var objTable = document.getElementById("tab");
+			for (var y = 0; y < objTable.rows.length; y++) {
+				var checkbox = objTable.rows[y].childNodes[1].childNodes[0].childNodes[5];
+				if (checkbox.checked == true) {
+					var changename = checkbox.parentNode.parentNode.parentNode.childNodes[3].childNodes[2].childNodes[1]
+					var name = $(changename).val();
+					var path = checkbox.parentNode.parentNode.parentNode.childNodes[5].innerHTML;
+					path = decodeURIComponent(path);
+					var imgpic = checkbox.parentNode.parentNode.parentNode.childNodes[3]
+							.getElementsByTagName("img");
+					if (imgpic.length > 0) {
+						isDir = true;
+					} else {
+						isDir = false;
+					}
+					var data = {
+						"path" : path,
+						"name" : name,
+						"isDir" : isDir
+					};
+				}
+			}
+			$.ajax({
+				url : "updatefile.action",
+				type : "post",
+				data : data,
+				success : function(s) {
+					if (s.success) {
+						alert(s.msg)
+					} else {
+						alert(s.msg);
+					}
+					location.reload();
+				}
+			});
+		}
+
+		function analysis(column) {
+			var selectColumn = document.getElementById("selectColumn").value;
+			var objTable = document.getElementById("tab");
+			var data = '';
+			for (var y = 0; y < objTable.rows.length; y++) {
+				var checkbox = objTable.rows[y].childNodes[1].childNodes[0].childNodes[5];
+				if (checkbox.checked == true) {//返回checkbox是否被选中
+					var td3 = checkbox.parentNode.parentNode.parentNode.childNodes[3];//找到选中文件或文件夹
+					var imgpic = td3.getElementsByTagName("img");//查看img是否为空
+					if (imgpic.length > 0) {//若果不为空
+						alert("抱歉无法分析文件夹");
+						return;
+					} else {
+						var path = checkbox.parentNode.parentNode.parentNode.childNodes[5].innerHTML;//找到选中文件服务器路径
+						path = decodeURIComponent(path);
+
+						var names = td3.childNodes[0].childNodes[0]//获取文件名称
+						var name = names.innerHTML
+					}
+					data += path + ",";//path后面+，
+				}
+			}
+			if (imgpic.length > 0) {
+				window.location.reload();//刷新页面
+			} else {
+				data = data.substring(0, data.length - 1);//去除逗号
+				if (column == 1) {
+					var num = 500;
+				} else {
+					var num = 10;
+				}
+				$("#Dataanalysis").attr(
+						"href",
+						"analysis.action?paths=" + data + "&selectColumn="
+								+ column + "&num=" + num); /* href="analysis.action?paths=/1.csv&selectColumn=1&num=10" */
+				document.getElementById("Dataanalysis").click();//点击按钮
+
+			}
+		}
+		
+		function createlink(type){
+			var path = "${path}";
+			var data ={'type':type,'filename':filename,'filepath':filepath,'isdir':isdir_share,'length':filelength};
+				$.ajax({
+					url:'createLink.action',
+					type:'post',
+					data:data,
+					success:function(s){
+						if(s.success){
+							if(type=='1'){
+								var container='<div class="panel-heading">'
+				                    +'</div>'
+				                    +'<div class="panel-body" style=" width: 524px;">  '                
+				                    +'<div class="form-horizontal" role="form">'
+				                    +'<div class="form-group">'
+				                    +' <label for="1" style=" margin-left: -44px;" class="col-lg-2 control-label">连接</label>'
+				                    +'<div class="col-lg-10">'
+				                    +'   <input class="form-control" id="1" value="'+s.other.http+'" type="text">'
+				                    +' </div>'
+				                    +' </div>'
+				                    +'<div class="form-group" style="display:none">'
+				                    +'   <label for="inputPassword1" style="margin-left: -44px;" class="col-lg-2 control-label">密码</label>'
+				                    +'  <div class="col-lg-4">'
+				                    +'      <input class="form-control" id="2" value="'+s.other.pwd+'" type="text">'
+				                    +'    </div>'
+				                    +' </div>'
+				                    +' <div class="form-group">'
+				                    +'      <div class="col-lg-offset-2 col-lg-10" style="text-align:right">'
+				                    +'          <button type="submit" class="btn-u btn-u-green" onclick="copyToClipBoard(3,2,1)" id="3">复制</button>'
+				                    +'      </div>'
+				                    +'    </div>'
+				                    +'   </div>'
+				                    +'   </div>';
+								$("#publicLink").empty().append(container);
+								copyToClipBoard(3,2,1);
+							}else{
+								var container='<div class="panel-heading">'
+				                    +'</div>'
+				                    +'<div class="panel-body" style=" width: 524px;">  '                
+				                    +'<div class="form-horizontal" role="form">'
+				                    +'<div class="form-group">'
+				                    +' <label for="4" style="margin-left: -44px;" class="col-lg-2 control-label">连接</label>'
+				                    +'<div class="col-lg-10">'
+				                    +'   <input class="form-control" id="4" value="'+s.other.http+'" type="text">'
+				                    +' </div>'
+				                    +' </div>'
+				                    +'<div class="form-group">'
+				                    +'   <label for="inputPassword1" style="margin-left: -44px;" class="col-lg-2 control-label">密码</label>'
+				                    +'  <div class="col-lg-4">'
+				                    +'      <input class="form-control" id="5" value="'+s.other.pwd+'" type="text">'
+				                    +'    </div>'
+				                    +' </div>'
+				                    +' <div class="form-group">'
+				                    +'      <div class="col-lg-offset-2 col-lg-10" style="text-align:right">'
+				                    +'          <button type="submit" class="btn-u btn-u-green" id="6" onclick="copyToClipBoard(6,5,4)">复制</button>'
+				                    +'      </div>'
+				                    +'    </div>'
+				                    +'   </div>'
+				                    +'   </div>';
+								$("#securitLink").empty().append(container);
+								copyToClipBoard(6,5,4);
+							}
+						}
+					}
+				});
+		}
+		
+		function copyToClipBoard(a,b,c){
+			var id='#'+a;
+			 $(id).zclip({
+		            path: "assets/javascripts/ZeroClipboard.swf",
+		            copy: function(){
+		            	var secruit='';
+		            	if(a=='6'){
+		            		secruit+='密码：'+$('#'+b).val();
+		            	}
+		                return $('#'+c).val()+'   '+secruit;
+		            }
+		        });
+			}
+		
+		function getsize() {
+			$.ajax({
+				url : "storageSize.action",
+				type : "post",
+				success : function(s) {
+					var data = s.msg;
+					var totle = data.total;
+					var size = data.size;
+					var totleM = totle * 1024;
+					var presentbfb = size / totleM * 100;
+					$('#progress-bar').css('width', presentbfb + '%');
+					if (totle < 1024) {
+						$('#totle').html(totle + 'G');
+					} else {
+						totle = totle / 1024;
+						totle = parseFloat(totle);
+						totle = totle.toFixed(2);
+						$('#totle').html(totle + 'T');
+					}
+
+					if (size < 1024) {
+						$('#size').html('已用' + size + 'M');
+					} else {
+						size = size / 1024;
+						size = parseFloat(size);
+						size = size.toFixed(2);
+						$('#size').html('已用' + size + 'G');
+					}
+
+				}
+			});
+		}
+		
+		function allshare(){
+			$("#home1").addClass('active');
+			$("#home1").addClass('in');
+			$("#profile").removeClass('active');
+			$("#profile").removeClass('in');
+		}
+		
+		function secshare(){
+			$("#home1").removeClass('active');
+			$("#home1").removeClass('in');
+			$("#profile").addClass('active');
+			$("#profile").addClass('in');
+			
+		}
+		
+		var filepath ='';
+		var filename='';
+		var isdir_share='';
+		var filelength='';
+		function share(name,path,isdir,length){
+			filename=name;
+			filepath=path;
+			isdir_share=isdir;
+			filelength= length;
+			$("#modal3").css("display", "block");
+		}
+		
+		function close1(){
+			location.reload();
+		}
+		
+	</script>
+</body>
+</html>

@@ -1,0 +1,250 @@
+<%@ page language="java" import="java.util.*" pageEncoding="utf-8"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+<%
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path + "/";
+%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="">
+<meta name="author" content="">
+<title>我的分享</title>
+
+<link href="assets/stylesheets/bootstrap.min.css" media="all" rel="stylesheet"
+	type="text/css" />
+<link href="assets/stylesheets/style.css" media="all" rel="stylesheet" type="text/css" />
+<link href="assets/stylesheets/disk.css" media="all" rel="stylesheet" type="text/css" />
+<link href="assets/stylesheets/font-awesome.css" media="all" rel="stylesheet"
+	type="text/css" />
+<link rel="stylesheet" href="assets/stylesheets/zTreeStyle.css" type="text/css">
+<style>
+</style>
+
+</head>
+<body>
+	<jsp:include page="common/header.jsp"></jsp:include>
+	<div class="main">
+		<div class="main-left" style="z-index: 1;">
+			<div class="main-left" style="z-index: 1;">
+				<div class="list-group category" style="margin: 10px;">
+					<div id="ahref">
+						<a class="list-group-item " id="r_active" href="home.action"><span
+							class="glyphicon glyphicon-home left-icon"></span>&nbsp;&nbsp;全部文件</a>
+						<a class="list-group-item " id="type" onclick="gettype(href)"
+							href="category.action?type=2"><span
+							class="glyphicon glyphicon-file left-icon"> </span>&nbsp;&nbsp;我的文档</a>
+						<a class="list-group-item " href="category.action?type=1"
+							onclick="gettype(href)"><span
+							class="glyphicon glyphicon-picture left-icon"></span>&nbsp;&nbsp;我的图片</a>
+						<a class="list-group-item " id="type" href="category.action?type=3"
+							onclick="gettype(href)"><span
+							class="glyphicon glyphicon-film left-icon"></span>&nbsp;&nbsp;我的视频</a>
+						<a class="list-group-item " id="type" href="category.action?type=4"
+							onclick="gettype(href)"><span
+							class="glyphicon glyphicon-music left-icon"></span>&nbsp;&nbsp;我的音乐</a>
+						<a class="list-group-item" id="type" href="category.action?type=5"
+							onclick="gettype(href)"><span
+							class="glyphicon glyphicon-inbox left-icon"></span>&nbsp;&nbsp;其他</a>
+						<a class="list-group-item active" id="type" href="shareFile.action"><span
+							class="glyphicon glyphicon-share left-icon"></span>&nbsp;&nbsp;我的分享</a>
+						<a class="list-group-item" href="garbage.action"><span
+							class="glyphicon glyphicon-trash left-icon"></span>&nbsp;&nbsp;垃圾箱</a>
+					</div>
+				</div>
+				<div class="main-left-use">
+
+					<div class="progress progress-u progress-xs">
+						<div class="progress-bar progress-bar-blue" id="progress-bar"
+							role="progressbar" aria-valuemin="0" aria-valuemax="100" style=""></div>
+					</div>
+					<h3 class="heading-xs" style="font-size: 10px; padding: 0 10px">
+						容量：<span class="" id="totle"></span><span
+							class="capacity pull-right"><a href="javascript:void(0)">扩容</a></span>
+					</h3>
+
+				</div>
+			</div>
+		</div>
+		
+		<div class="main-right"
+			style="left: 199px;position: fixed;top: 89px;right: 0;bottom: 32px;overflow:auto">
+			<div class="col-md-12" style="padding:0">
+				<div class="tools">
+					<div class="tools-left">
+						<!-- 文件功能 -->
+						<!-- 			<div class="btn-group btn-group-sm kod_path_tool fl-left">
+							<div id="result-uploader" class="right upload-filemain fl"></div>
+							<button class="btn btn-default" type="button" onclick="newdir()"
+								id="newdir">
+								<i class="font-icon fa  fa-folder-open-o" style="color:#888"></i>新建文件夹
+							</button>
+							<button class="btn btn-default" type="button"
+								onclick="deletefile()" id="delete">
+								<i class="font-icon glyphicon glyphicon-trash"
+									style="color:#888"></i>删除
+							</button>
+							<a class="btn btn-default" type="button" onclick="downloadfile()"
+								href="javascript:void(0)" id="download"> <i
+								class="font-icon glyphicon glyphicon-download-alt"
+								style="color:#888"></i>下载
+							</a>
+							<button class="btn btn-default" type="button" id="rename"
+								onclick="renanme()">
+								<i class="font-icon glyphicon glyphicon-pencil"
+									style="color:#888"></i>重命名
+							</button>
+						</div> -->
+						<div class="clearfix"></div>
+					</div>
+				</div>
+			</div>
+			<div class="col-md-12" style="padding:0;top:45px">
+
+				<div class=" panel-col lesson-manage-panel"
+					style="min-height:700px;border: 0px solid transparent;">
+
+					<div class="col-md-12 tableth">
+						<div class="hide" id="search-span" style="color:#ADADAD">搜索结果:</div>
+						<table class="table  mb-0">
+							<thead>
+								<tr>
+									<th class="table-checkbox"
+										style="top: -17px;position: relative;left: 13px;"><label
+										class="checkbox checkbox-position" for="checkbox1"> <span
+											class="icons icon-span"> <span
+												class="first-icon fui-checkbox-unchecked"></span> <span
+												class="second-icon fui-checkbox-checked"></span></span> 
+									</label></th>
+									<th class="mainfile-name">文件名</th>
+									<th class="hide table-fileposition mainfile-position">文件位置</th>
+									<th class="mainfile-size">大小</th>
+									<th class="mainfile-size">分享类型</th>
+									<th class="mainfile-size" id="share_th">取消分享</th>
+									<th class="mainchange-date">分享日期</th>
+								</tr>
+							</thead>
+							<tbody id="tab" >
+								<c:forEach items="${sharelist }" var="fb">
+								<tr   >
+									<td style="top: -6px;position: relative;left: 13px;"><label
+										class="checkbox table-checkboxposition" for="checkbox1">
+											<span class="icons main-icons"> <span
+												class="first-icon fui-checkbox-unchecked"></span> <span
+												class="second-icon fui-checkbox-checked"></span>
+										</span> <input type="checkbox" name='check' class="main-tabinput">
+									</label></td>
+									<td><span style="display: block"><c:if
+													test="${fb.isdir == true}">
+													<img src="assets/images/0.png" class="objimg">
+													<input
+														name="objimg" type="text" style="display: none"
+														value="${fb.filename}">
+												</c:if>${fb.filename}<c:if test="${fb.isdir == true}">
+													</a>
+												</c:if></span>
+						
+									</td>
+									<td class="hide table-fileposition table-path">${fb.filepath}</td>
+									<td onclick="showcopy(${fb.id})" id="1" class="copy">${(fb.filelength)}</td>
+									<td>
+										<c:choose>
+											<c:when test="${fb.type==1}">公开分享</c:when>
+											<c:otherwise>私密分享(${fb.pwd})</c:otherwise>
+										</c:choose>
+									
+									</td>
+									<td id="share_td"><a
+										onclick="cancelShare(${fb.id})"><img
+											src="assets/images/cancel.png" width=20px
+											height=20px /></a></td> 
+									<td>${fb.data }</td>
+								</tr>
+								<tr id="copy${fb.id}" style="display: none">
+								<td></td>
+								<td colspan="3">
+									<c:choose>
+									
+										<c:when test="${fb.type==1}">
+											<input  id="http${fb.id}" value="${fb.http}" style="width:340px; border: 0px;" type="text">
+										</c:when>
+										
+										<c:otherwise>
+										<input  id="http${fb.id}" value="链接：${fb.http} 密码：${fb.pwd}" style="width:480px; border: 0px;" type="text">
+										</c:otherwise>
+									</c:choose>
+								</td>								
+								<td> <a href="javascript:void(0)"  id="Copy${fb.id}" onclick="copy('${fb.id}')">复制 </a></td>
+								<td></td>
+								</tr>
+							
+								</c:forEach>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+
+		</div>
+	</div>
+
+	<div class="disk-foot"
+		style="position:fixed;bottom:0;left:0 ;right:0 ;height:32px;background:#f9f9f9;border-top: 1px solid #e8e8e8;color: #999;text-align:center;padding:7px">
+		<p>© 2015南京第五十五所技术开发有限公司</p>
+	</div>
+
+	<div class="lightboxOverlay"></div>
+	
+	<!--  JavaScript-->
+	<script src="assets/javascripts/jquery.min.js"></script>
+	<script src="assets/javascripts/bootstrap.min.js"></script>
+	<script src="assets/javascripts/fineuploader.js"></script>
+	<script src="assets/javascripts/checkbox.js"></script>
+	<script src="assets/javascripts/common.js"></script>
+	<script type="text/javascript">
+	function cancelShare(id){
+		if(confirm("确定要取消分享？")){
+			var data = {id:id};
+			$.ajax({
+				url:"cancelshare.action",
+				type:"post",
+				data:data,
+				success:function(s){
+					if(s.success){
+						alert(s.msg);
+						location.reload();						
+					}else{
+						alert(s.msg);
+					};
+				}
+			});
+		}
+	}
+	
+	function showcopy(id){
+		var obj =$(".copy");
+		if($(".copy").attr('id')=='1'){
+			$("#copy"+id).show();
+			$('.copy').attr('id','2');
+		}else{
+			$("#copy"+id).hide();
+			$('.copy').attr('id','1');
+		}
+
+	}
+	
+	function copy(id){
+		var Url2=document.getElementById("http"+id);
+		Url2.select(); // 选择对象
+		document.execCommand("copy"); // 执行浏览器复制命令
+		alert("已复制好，可贴粘。");
+	}
+	</script>
+	
+</body>
+</html>

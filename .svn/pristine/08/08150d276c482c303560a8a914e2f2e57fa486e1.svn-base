@@ -1,0 +1,14 @@
+USERNAME=wx031
+PASSWORD=123456
+AUTHURL=http://swift:5000/v2.0
+TENANTID=78ff7b3430fd44128467ef7a764c9f03
+TENANTNAME=wx031
+
+
+openOfficeServerIp=127.0.0.1
+openOfficeServerPort=8100
+hdfs=hdfs\://192.168.1.99\:9000
+#input=C:\\new1.txt
+#output=C:\\wordcount
+#storage=hadoopStorageService
+storage=swiftStorageService
